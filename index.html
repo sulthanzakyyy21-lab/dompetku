@@ -1,533 +1,468 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Manajemen Keuangan & Dompet</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dompet Ku</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
 </head>
-<body class="bg-slate-100 text-slate-800 pb-20 font-sans select-none">
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
 
-    <!-- Header / Navbar -->
-    <header class="bg-indigo-600 text-white p-4 sticky top-0 z-40 shadow-md flex justify-between items-center">
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white p-6 shadow-lg rounded-b-3xl max-w-md mx-auto">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <p class="text-xs text-indigo-200 uppercase tracking-wider font-semibold">Total Sisa Uang</p>
+        <h1 id="total-saldo" class="text-3xl font-extrabold mt-1">Rp 0</h1>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="toggleModalWallet()" class="text-xs bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-2 rounded-xl transition font-medium">
+          Atur Dompet
+        </button>
+        <button onclick="exportData()" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl transition font-medium">
+          Backup
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-4 mt-6 space-y-6">
+
+    <!-- Area Peringatan (Alert Banner Mingguan) -->
+    <div id="warning-container" class="space-y-2">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Ringkasan Dompet -->
+    <section>
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Dompet Saya</h2>
+      </div>
+      <div id="wallet-list" class="grid grid-cols-1 gap-3">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Form Catat Transaksi -->
+    <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+      <h2 class="text-base font-bold text-slate-700 mb-4">Catat Transaksi</h2>
+      <form id="tx-form" onsubmit="addTransaction(event)" class="space-y-4">
+        
+        <!-- Tab Tipe Transaksi (Pengeluaran / Pemasukan) -->
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+          <button type="button" id="btn-type-out" onclick="setTxType('out')" class="py-2 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm">
+            Pengeluaran (-)
+          </button>
+          <button type="button" id="btn-type-in" onclick="setTxType('in')" class="py-2 text-xs font-bold rounded-lg text-slate-500">
+            Pemasukan (+)
+          </button>
+        </div>
+
         <div>
-            <h1 class="text-lg font-bold flex items-center gap-2">
-                <i class="fa-solid fa-wallet"></i> Keuanganku
-            </h1>
-            <p class="text-xs text-indigo-200">Kelola Dompet & Limitt Bulanan</p>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Pilih Dompet</label>
+          <select id="tx-wallet" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            <!-- Rendered by JS -->
+          </select>
         </div>
-        <div class="text-right">
-            <p class="text-[10px] text-indigo-200">Total Saldo</p>
-            <p id="header-total-saldo" class="text-sm font-bold text-white">Rp 0</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Nominal (Rp)</label>
+            <input type="number" id="tx-amount" placeholder="25000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan</label>
+            <input type="text" id="tx-desc" placeholder="Makan siang / Bonus" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
         </div>
-    </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="p-4 max-w-lg mx-auto space-y-4">
-
-        <!-- CONTAINER BANNER PERINGATAN (DYNAMIC) -->
-        <div id="warning-alerts-container" class="space-y-2"></div>
-
-        <!-- TAB 1: DASHBOARD DOMPET -->
-        <section id="tab-dompet" class="tab-content active space-y-4">
-            <!-- Form Tambah/Edit Dompet -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-                <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                    <i class="fa-solid fa-folder-plus text-indigo-600"></i> <span id="wallet-form-title">Tambah Dompet Baru</span>
-                </h3>
-                <input type="hidden" id="wallet-id">
-                <div>
-                    <label class="text-xs font-semibold text-slate-500">Nama Dompet</label>
-                    <input type="text" id="wallet-name" placeholder="misal: Keperluan Sendiri, Holiday, Dana Darurat" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs font-semibold text-slate-500">Saldo Awal (Rp)</label>
-                        <input type="number" id="wallet-balance" placeholder="0" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold text-slate-500">Limit Bulanan (Rp)</label>
-                        <input type="number" id="wallet-limit" placeholder="0 (Isi jika ada limit)" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="saveWallet()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700">Simpan Dompet</button>
-                    <button onclick="resetWalletForm()" class="bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold">Batal</button>
-                </div>
-            </div>
-
-            <!-- Daftar Dompet -->
-            <div class="space-y-3">
-                <h3 class="font-bold text-sm text-slate-700">Daftar Dompet & Batas Pengeluaran</h3>
-                <div id="wallets-list" class="space-y-3">
-                    <!-- Dynamic List Dompet -->
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 2: TRANSAKSI (CATAT PENGELUARAN/PEMASUKAN) -->
-        <section id="tab-transaksi" class="tab-content space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-                <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-indigo-600"></i> Catat Transaksi Baru
-                </h3>
-                <div>
-                    <label class="text-xs font-semibold text-slate-500">Jenis Transaksi</label>
-                    <select id="tx-type" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        <option value="expense">Pengeluaran (-)</option>
-                        <option value="income">Pemasukan (+)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs font-semibold text-slate-500">Pilih Dompet</label>
-                    <select id="tx-wallet" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        <!-- Dynamic Options Dompet -->
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs font-semibold text-slate-500">Jumlah Uang (Rp)</label>
-                    <input type="number" id="tx-amount" placeholder="0" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-semibold text-slate-500">Keterangan / Catatan</label>
-                    <input type="text" id="tx-note" placeholder="misal: Makan siang, Bensin, Tiket" class="w-full p-2 mt-1 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <button onclick="saveTransaction()" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700">Simpan Transaksi</button>
-            </div>
-
-            <!-- Riwayat Transaksi -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                    <span class="font-bold text-sm text-slate-700"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Transaksi</span>
-                    <button onclick="clearAllTransactions()" class="text-xs text-red-500 font-medium hover:underline">Hapus Semua</button>
-                </div>
-                <div id="tx-list" class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                    <!-- Dynamic List Transaksi -->
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 3: PENGATURAN & BACKUP DATA -->
-        <section id="tab-pengaturan" class="tab-content space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-                <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                    <i class="fa-solid fa-database text-indigo-600"></i> Backup & Restore Data
-                </h3>
-                <p class="text-xs text-slate-500">Simpan cadangan data keuangan kamu ke bentuk file JSON atau pulihkan data lama.</p>
-                <div class="flex gap-2">
-                    <button onclick="exportData()" class="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-xs font-semibold flex justify-center items-center gap-1 hover:bg-emerald-700">
-                        <i class="fa-solid fa-download"></i> Backup (JSON)
-                    </button>
-                    <label class="flex-1 bg-amber-600 text-white py-2 rounded-lg text-xs font-semibold flex justify-center items-center gap-1 cursor-pointer hover:bg-amber-700">
-                        <i class="fa-solid fa-upload"></i> Restore Data
-                        <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
-                    </label>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Bottom Navigation Bar (Mobile) -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-2 z-40">
-        <button onclick="switchTab('dompet')" id="nav-dompet" class="flex flex-col items-center text-indigo-600 font-semibold text-xs">
-            <i class="fa-solid fa-wallet text-lg mb-0.5"></i> Dompet
+        <button type="submit" id="btn-submit-tx" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-indigo-100">
+          Simpan Transaksi
         </button>
-        <button onclick="switchTab('transaksi')" id="nav-transaksi" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 text-xs">
-            <i class="fa-solid fa-receipt text-lg mb-0.5"></i> Transaksi
-        </button>
-        <button onclick="switchTab('pengaturan')" id="nav-pengaturan" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 text-xs">
-            <i class="fa-solid fa-sliders text-lg mb-0.5"></i> Pengaturan
-        </button>
-    </nav>
+      </form>
+    </section>
 
-    <script>
-        let db;
+    <!-- Histori Transaksi -->
+    <section>
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Riwayat Transaksi</h2>
+        <span id="tx-count" class="text-xs text-slate-400 font-medium">0 Catatan</span>
+      </div>
+      <div id="tx-list" class="space-y-2">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
 
-        window.onload = () => initDB();
+  </main>
 
-        function initDB() {
-            const request = indexedDB.open("FinanceTrackerDB", 1);
-            request.onupgradeneeded = function(e) {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains("wallets")) {
-                    db.createObjectStore("wallets", { keyPath: "id", autoIncrement: true });
-                }
-                if (!db.objectStoreNames.contains("transactions")) {
-                    db.createObjectStore("transactions", { keyPath: "id", autoIncrement: true });
-                }
-            };
-            request.onsuccess = function(e) {
-                db = e.target.result;
-                renderWallets();
-                renderTransactions();
-            };
-            request.onerror = function(e) {
-                console.error("Gagal membuka database", e);
-            };
-        }
+  <!-- Modal Kelola Dompet -->
+  <div id="modal-wallet" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-slate-800">Kelola Dompet</h3>
+        <button onclick="toggleModalWallet()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+      <!-- Form Tambah/Ubah Dompet -->
+      <form onsubmit="saveWallet(event)" class="space-y-3 pt-2 border-t border-slate-100">
+        <input type="hidden" id="wallet-edit-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Dompet</label>
+          <input type="text" id="wallet-name" placeholder="Misal: Tabungan" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Target Nominal Saldo Awal (Rp)</label>
+          <input type="number" id="wallet-budget" placeholder="1000000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Maksimal Pengeluaran Per Minggu (Rp)</label>
+          <input type="number" id="wallet-max-limit" placeholder="500000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[10px] text-slate-400 mt-1">Peringatan mingguan akan muncul jika pengeluaran minggu ini melewati batas.</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs">
+            Simpan Dompet
+          </button>
+          <button type="button" onclick="resetWalletForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-3 rounded-xl text-xs">
+            Batal
+          </button>
+        </div>
+      </form>
 
-            document.querySelectorAll('nav button').forEach(el => {
-                el.classList.remove('text-indigo-600', 'font-semibold');
-                el.classList.add('text-slate-400');
-            });
-            const activeNav = document.getElementById(`nav-${tabName}`);
-            activeNav.classList.remove('text-slate-400');
-            activeNav.classList.add('text-indigo-600', 'font-semibold');
+      <!-- Daftar Dompet Saat Ini -->
+      <div class="space-y-2 pt-2 border-t border-slate-100 max-h-48 overflow-y-auto" id="modal-wallet-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
 
-            if (tabName === 'dompet') renderWallets();
-            if (tabName === 'transaksi') {
-                populateWalletOptions();
-                renderTransactions();
+  <script>
+    // 1. Inisialisasi Data Default
+    const defaultWallets = [
+      { id: 'holiday', name: 'Holiday', budget: 2900000, maxLimit: 750000, color: 'bg-emerald-500' },
+      { id: 'personal', name: 'Keperluan Sendiri', budget: 1600000, maxLimit: 400000, color: 'bg-blue-500' },
+      { id: 'emergency', name: 'Dana Darurat', budget: 1500000, maxLimit: 200000, color: 'bg-amber-500' }
+    ];
+
+    const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500', 'bg-cyan-500'];
+
+    let wallets = JSON.parse(localStorage.getItem('my_wallets')) || defaultWallets;
+    
+    // Migrasi data jika belum ada maxLimit
+    wallets = wallets.map(w => ({
+      ...w,
+      maxLimit: w.maxLimit || 500000
+    }));
+
+    let transactions = JSON.parse(localStorage.getItem('my_tx')) || [];
+    let currentTxType = 'out'; // 'out' atau 'in'
+
+    // Save to LocalStorage
+    function saveData() {
+      localStorage.setItem('my_wallets', JSON.stringify(wallets));
+      localStorage.setItem('my_tx', JSON.stringify(transactions));
+    }
+
+    // Helper Format Rupiah
+    function formatRupiah(number) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+    }
+
+    // Helper: Cek apakah tanggal transaksi berada dalam 7 hari terakhir (minggu ini)
+    function isWithinCurrentWeek(dateString) {
+      if (!dateString) return false;
+      const txDate = new Date(dateString);
+      const today = new Date();
+      const diffTime = today - txDate;
+      const diffDays = diffTime / (1000 * 60 * 60 * 24);
+      return diffDays >= 0 && diffDays <= 7;
+    }
+
+    // Toggle Tipe Transaksi (Pengeluaran / Pemasukan)
+    function setTxType(type) {
+      currentTxType = type;
+      const btnOut = document.getElementById('btn-type-out');
+      const btnIn = document.getElementById('btn-type-in');
+      const btnSubmit = document.getElementById('btn-submit-tx');
+
+      if (type === 'out') {
+        btnOut.className = "py-2 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm";
+        btnIn.className = "py-2 text-xs font-bold rounded-lg text-slate-500";
+        btnSubmit.className = "w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-indigo-100";
+        btnSubmit.innerText = "Simpan Pengeluaran";
+      } else {
+        btnIn.className = "py-2 text-xs font-bold rounded-lg bg-white text-emerald-600 shadow-sm";
+        btnOut.className = "py-2 text-xs font-bold rounded-lg text-slate-500";
+        btnSubmit.className = "w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-emerald-100";
+        btnSubmit.innerText = "Tambah Uang (Pemasukan)";
+      }
+    }
+
+    // 2. Render Tampilan Utama
+    function render() {
+      const walletStats = {};
+      wallets.forEach(w => walletStats[w.id] = { spent: 0, weeklySpent: 0, income: 0 });
+
+      let totalNetBalance = 0;
+      wallets.forEach(w => totalNetBalance += Number(w.budget));
+
+      transactions.forEach(tx => {
+        if (walletStats[tx.walletId]) {
+          const amount = Number(tx.amount);
+          if (tx.type === 'in') {
+            walletStats[tx.walletId].income += amount;
+            totalNetBalance += amount;
+          } else {
+            walletStats[tx.walletId].spent += amount;
+            totalNetBalance -= amount;
+
+            // Hitung khusus pengeluaran mingguan (7 hari terakhir)
+            if (isWithinCurrentWeek(tx.fullDate)) {
+              walletStats[tx.walletId].weeklySpent += amount;
             }
+          }
+        }
+      });
+
+      // Update Total Sisa Saldo Keseluruhan
+      document.getElementById('total-saldo').innerText = formatRupiah(totalNetBalance);
+
+      // Render Peringatan Mingguan & Kartu Dompet
+      const warningContainer = document.getElementById('warning-container');
+      warningContainer.innerHTML = '';
+      
+      const walletListEl = document.getElementById('wallet-list');
+      walletListEl.innerHTML = '';
+
+      wallets.forEach(w => {
+        const stats = walletStats[w.id] || { spent: 0, weeklySpent: 0, income: 0 };
+        const remaining = Number(w.budget) + stats.income - stats.spent;
+        
+        const maxLimit = Number(w.maxLimit) || 1;
+        const percentWeekly = Math.round((stats.weeklySpent / maxLimit) * 100);
+
+        // Peringatan jika pengeluaran minggu ini >= 80% atau >= 100% dari limit mingguan
+        if (percentWeekly >= 80) {
+          const isOver = percentWeekly >= 100;
+          warningContainer.innerHTML += `
+            <div class="p-3.5 rounded-2xl border ${isOver ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'} flex items-start gap-3 shadow-sm">
+              <span class="text-lg">${isOver ? '🚨' : '⚠️'}</span>
+              <div class="text-xs">
+                <span class="font-bold block mb-0.5">${isOver ? 'Batas Mingguan Terlewati!' : 'Peringatan Batas Mingguan!'}</span>
+                Dompet <b class="underline">${w.name}</b> minggu ini sudah mencapai <b>${percentWeekly}%</b> (${formatRupiah(stats.weeklySpent)} / ${formatRupiah(maxLimit)}).
+              </div>
+            </div>
+          `;
         }
 
-        // --- MANAJEMEN DOMPET ---
-        function saveWallet() {
-            const id = document.getElementById('wallet-id').value;
-            const name = document.getElementById('wallet-name').value.trim();
-            const balance = parseFloat(document.getElementById('wallet-balance').value) || 0;
-            const limit = parseFloat(document.getElementById('wallet-limit').value) || 0;
+        walletListEl.innerHTML += `
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full ${w.color || 'bg-indigo-500'}"></span>
+                <span class="font-bold text-slate-700 text-sm">${w.name}</span>
+              </div>
+              <span class="text-xs font-semibold ${percentWeekly >= 100 ? 'text-red-500' : percentWeekly >= 80 ? 'text-amber-500' : 'text-slate-400'}">
+                ${percentWeekly}% Minggu Ini
+              </span>
+            </div>
+            <div class="flex justify-between items-end mt-1">
+              <div>
+                <p class="text-[10px] text-slate-400 uppercase tracking-wide">Sisa Uang Dompet</p>
+                <p class="text-base font-extrabold text-slate-800">${formatRupiah(remaining)}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[10px] text-slate-400">Limit/Minggu: ${formatRupiah(w.maxLimit)}</p>
+                <p class="text-[10px] text-slate-500">Keluar Mgg Ini: ${formatRupiah(stats.weeklySpent)}</p>
+              </div>
+            </div>
+            <!-- Progress Bar Mingguan -->
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
+              <div class="${percentWeekly >= 100 ? 'bg-red-500' : percentWeekly >= 80 ? 'bg-amber-500' : (w.color || 'bg-indigo-500')} h-1.5 rounded-full transition-all duration-300" style="width: ${Math.min(percentWeekly, 100)}%"></div>
+            </div>
+          </div>
+        `;
+      });
 
-            if (!name) {
-                alert("Mohon isi nama dompet!");
-                return;
-            }
+      // Render Select Option Form
+      const selectEl = document.getElementById('tx-wallet');
+      selectEl.innerHTML = wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
 
-            const tx = db.transaction("wallets", "readwrite");
-            const store = tx.objectStore("wallets");
+      // Render Histori Transaksi
+      const txListEl = document.getElementById('tx-list');
+      const txCountEl = document.getElementById('tx-count');
+      txCountEl.innerText = `${transactions.length} Catatan`;
 
-            const walletData = { name, initialBalance: balance, currentBalance: balance, limit };
-            if (id) {
-                walletData.id = parseInt(id);
-                // Menjaga balance yang sudah dihitung jika mengedit
-                store.get(parseInt(id)).onsuccess = (e) => {
-                    const existing = e.target.result;
-                    walletData.currentBalance = existing.currentBalance;
-                    store.put(walletData).onsuccess = () => finishSaveWallet();
-                };
-            } else {
-                store.add(walletData).onsuccess = () => finishSaveWallet();
-            }
-        }
-
-        function finishSaveWallet() {
-            alert("Dompet berhasil disimpan!");
-            resetWalletForm();
-            renderWallets();
-        }
-
-        function resetWalletForm() {
-            document.getElementById('wallet-id').value = '';
-            document.getElementById('wallet-name').value = '';
-            document.getElementById('wallet-balance').value = '';
-            document.getElementById('wallet-limit').value = '';
-            document.getElementById('wallet-form-title').innerText = 'Tambah Dompet Baru';
-        }
-
-        function editWallet(id) {
-            const tx = db.transaction("wallets", "readonly");
-            tx.objectStore("wallets").get(id).onsuccess = (e) => {
-                const w = e.target.result;
-                document.getElementById('wallet-id').value = w.id;
-                document.getElementById('wallet-name').value = w.name;
-                document.getElementById('wallet-balance').value = w.initialBalance;
-                document.getElementById('wallet-limit').value = w.limit || 0;
-                document.getElementById('wallet-form-title').innerText = 'Edit Dompet';
-            };
-        }
-
-        function deleteWallet(id) {
-            if (confirm("Hapus dompet ini? Transaksi terkait dompet ini mungkin perlu disesuaikan.")) {
-                const tx = db.transaction("wallets", "readwrite");
-                tx.objectStore("wallets").delete(id).onsuccess = () => renderWallets();
-            }
-        }
-
-        function renderWallets() {
-            const txW = db.transaction("wallets", "readonly");
-            txW.objectStore("wallets").getAll().onsuccess = (e) => {
-                const wallets = e.target.result;
-                
-                const txT = db.transaction("transactions", "readonly");
-                txT.objectStore("transactions").getAll().onsuccess = (ev) => {
-                    const transactions = ev.target.result;
-
-                    let grandTotal = 0;
-                    let warningList = [];
-                    const walletsContainer = document.getElementById('wallets-list');
-
-                    if (wallets.length === 0) {
-                        walletsContainer.innerHTML = `<div class="p-4 bg-white rounded-xl text-center text-xs text-slate-400">Belum ada dompet. Tambahkan dompet pertama kamu di atas.</div>`;
-                        document.getElementById('header-total-saldo').innerText = 'Rp 0';
-                        document.getElementById('warning-alerts-container').innerHTML = '';
-                        return;
-                    }
-
-                    walletsContainer.innerHTML = wallets.map(w => {
-                        // Kalkulasi Total Pengeluaran & Saldo Sekarang
-                        const walletTx = transactions.filter(t => t.walletId === w.id);
-                        const totalExpense = walletTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-                        const totalIncome = walletTx.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-                        
-                        const currentBalance = w.initialBalance + totalIncome - totalExpense;
-                        grandTotal += currentBalance;
-
-                        // Kalkulasi Persentase Limit
-                        let limitHTML = '';
-                        let warningStatus = null;
-
-                        if (w.limit && w.limit > 0) {
-                            const percent = Math.min(Math.round((totalExpense / w.limit) * 100), 100);
-                            let colorClass = "bg-emerald-500";
-                            let badgeText = "Aman";
-                            let badgeClass = "bg-emerald-100 text-emerald-700";
-
-                            if (percent >= 90) {
-                                colorClass = "bg-red-500";
-                                badgeText = "Bahaya / Hampir Habis!";
-                                badgeClass = "bg-red-100 text-red-700 font-bold animate-pulse";
-                                warningStatus = { wallet: w.name, percent, type: 'danger', expense: totalExpense, limit: w.limit };
-                            } else if (percent >= 75) {
-                                colorClass = "bg-amber-500";
-                                badgeText = "Peringatan!";
-                                badgeClass = "bg-amber-100 text-amber-700 font-bold";
-                                warningStatus = { wallet: w.name, percent, type: 'warning', expense: totalExpense, limit: w.limit };
-                            }
-
-                            if (warningStatus) warningList.push(warningStatus);
-
-                            limitHTML = `
-                                <div class="mt-3 pt-2 border-t border-slate-100">
-                                    <div class="flex justify-between items-center text-xs mb-1">
-                                        <span class="text-slate-500 font-medium">Pengeluaran: <b class="text-slate-700">Rp ${totalExpense.toLocaleString('id-ID')}</b> / Rp ${w.limit.toLocaleString('id-ID')}</span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] ${badgeClass}">${percent}% (${badgeText})</span>
-                                    </div>
-                                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                        <div class="${colorClass} h-2 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
-                                    </div>
-                                </div>
-                            `;
-                        }
-
-                        return `
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-bold text-base text-slate-800">${w.name}</h4>
-                                        <p class="text-xs text-slate-400">Saldo: <span class="text-indigo-600 font-bold text-sm">Rp ${currentBalance.toLocaleString('id-ID')}</span></p>
-                                    </div>
-                                    <div class="flex gap-1">
-                                        <button onclick="editWallet(${w.id})" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded text-xs"><i class="fa-solid fa-pen"></i></button>
-                                        <button onclick="deleteWallet(${w.id})" class="p-1.5 text-red-500 hover:bg-red-50 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
-                                    </div>
-                                </div>
-                                ${limitHTML}
-                            </div>
-                        `;
-                    }).join('');
-
-                    document.getElementById('header-total-saldo').innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
-                    renderWarningBanners(warningList);
-                };
-            };
-        }
-
-        function renderWarningBanners(warnings) {
-            const container = document.getElementById('warning-alerts-container');
-            if (warnings.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-
-            container.innerHTML = warnings.map(w => `
-                <div class="${w.type === 'danger' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-amber-50 border-amber-200 text-amber-800'} border p-3 rounded-xl text-xs flex items-center gap-3 shadow-sm">
-                    <i class="fa-solid ${w.type === 'danger' ? 'fa-triangle-exclamation text-red-600' : 'fa-circle-exclamation text-amber-600'} text-lg"></i>
-                    <div class="flex-1">
-                        <p class="font-bold">Peringatan Limit: ${w.wallet}</p>
-                        <p class="text-[11px] opacity-90">Pengeluaran sudah mencapai <b>${w.percent}%</b> (Rp ${w.expense.toLocaleString('id-ID')} / Rp ${w.limit.toLocaleString('id-ID')}).</p>
-                    </div>
+      if (transactions.length === 0) {
+        txListEl.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Belum ada catatan transaksi.</div>`;
+      } else {
+        txListEl.innerHTML = transactions.slice().reverse().map((tx, idx) => {
+          const wallet = wallets.find(w => w.id === tx.walletId);
+          const realIndex = transactions.length - 1 - idx;
+          const isIncome = tx.type === 'in';
+          return `
+            <div class="bg-white p-3.5 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-2 h-8 rounded-full ${wallet ? (wallet.color || 'bg-slate-300') : 'bg-slate-300'}"></div>
+                <div>
+                  <p class="font-bold text-slate-700 text-sm">${tx.desc}</p>
+                  <p class="text-[10px] text-slate-400">${wallet ? wallet.name : '-'} • ${tx.date}</p>
                 </div>
-            `).join('');
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-bold text-sm ${isIncome ? 'text-emerald-600' : 'text-red-500'}">
+                  ${isIncome ? '+' : '-'} ${formatRupiah(tx.amount)}
+                </span>
+                <button onclick="deleteTransaction(${realIndex})" class="text-slate-300 hover:text-red-500 text-xs font-bold p-1">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      renderModalWalletList();
+    }
+
+    // 3. Tambah / Simpan Transaksi
+    function addTransaction(e) {
+      e.preventDefault();
+      const walletId = document.getElementById('tx-wallet').value;
+      const amount = Number(document.getElementById('tx-amount').value);
+      const desc = document.getElementById('tx-desc').value;
+
+      if (!walletId) {
+        alert('Buat dompet terlebih dahulu!');
+        return;
+      }
+
+      const now = new Date();
+      const newTx = {
+        walletId,
+        amount,
+        desc,
+        type: currentTxType,
+        date: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+        fullDate: now.toISOString() // Disimpan untuk filter mingguan otomatis
+      };
+
+      transactions.push(newTx);
+      saveData();
+
+      document.getElementById('tx-amount').value = '';
+      document.getElementById('tx-desc').value = '';
+
+      render();
+    }
+
+    // 4. Hapus Transaksi
+    function deleteTransaction(index) {
+      if (confirm('Hapus pencatatan transaksi ini?')) {
+        transactions.splice(index, 1);
+        saveData();
+        render();
+      }
+    }
+
+    // 5. Kelola Dompet
+    function toggleModalWallet() {
+      const modal = document.getElementById('modal-wallet');
+      modal.classList.toggle('hidden');
+      modal.classList.toggle('flex');
+    }
+
+    function saveWallet(e) {
+      e.preventDefault();
+      const editId = document.getElementById('wallet-edit-id').value;
+      const name = document.getElementById('wallet-name').value;
+      const budget = Number(document.getElementById('wallet-budget').value);
+      const maxLimit = Number(document.getElementById('wallet-max-limit').value);
+
+      if (editId) {
+        const wallet = wallets.find(w => w.id === editId);
+        if (wallet) {
+          wallet.name = name;
+          wallet.budget = budget;
+          wallet.maxLimit = maxLimit;
         }
+      } else {
+        const newWallet = {
+          id: 'w_' + Date.now(),
+          name,
+          budget,
+          maxLimit,
+          color: colors[wallets.length % colors.length]
+        };
+        wallets.push(newWallet);
+      }
 
-        // --- MANAJEMEN TRANSAKSI ---
-        function populateWalletOptions() {
-            const tx = db.transaction("wallets", "readonly");
-            tx.objectStore("wallets").getAll().onsuccess = (e) => {
-                const wallets = e.target.result;
-                const select = document.getElementById('tx-wallet');
-                select.innerHTML = wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
-            };
-        }
+      saveData();
+      resetWalletForm();
+      render();
+    }
 
-        function saveTransaction() {
-            const type = document.getElementById('tx-type').value;
-            const walletId = parseInt(document.getElementById('tx-wallet').value);
-            const amount = parseFloat(document.getElementById('tx-amount').value) || 0;
-            const note = document.getElementById('tx-note').value.trim();
+    function editWallet(id) {
+      const wallet = wallets.find(w => w.id === id);
+      if (wallet) {
+        document.getElementById('wallet-edit-id').value = wallet.id;
+        document.getElementById('wallet-name').value = wallet.name;
+        document.getElementById('wallet-budget').value = wallet.budget;
+        document.getElementById('wallet-max-limit').value = wallet.maxLimit;
+      }
+    }
 
-            if (!walletId || amount <= 0) {
-                alert("Pilih dompet dan masukkan nominal uang yang valid!");
-                return;
-            }
+    function deleteWallet(id) {
+      if (wallets.length <= 1) {
+        alert('Setidaknya harus ada 1 dompet!');
+        return;
+      }
+      if (confirm('Hapus dompet ini?')) {
+        wallets = wallets.filter(w => w.id !== id);
+        saveData();
+        render();
+      }
+    }
 
-            const tx = db.transaction(["wallets", "transactions"], "readwrite");
-            const walletStore = tx.objectStore("wallets");
-            const txStore = tx.objectStore("transactions");
+    function resetWalletForm() {
+      document.getElementById('wallet-edit-id').value = '';
+      document.getElementById('wallet-name').value = '';
+      document.getElementById('wallet-budget').value = '';
+      document.getElementById('wallet-max-limit').value = '';
+    }
 
-            const transactionData = {
-                type,
-                walletId,
-                amount,
-                note: note || (type === 'expense' ? 'Pengeluaran' : 'Pemasukan'),
-                date: new Date().toISOString()
-            };
+    function renderModalWalletList() {
+      const modalList = document.getElementById('modal-wallet-list');
+      modalList.innerHTML = wallets.map(w => `
+        <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 border border-slate-100">
+          <div>
+            <p class="font-bold text-xs text-slate-700">${w.name}</p>
+            <p class="text-[10px] text-slate-400">Limit/Minggu: ${formatRupiah(w.maxLimit)}</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="editWallet('${w.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">Edit</button>
+            <button onclick="deleteWallet('${w.id}')" class="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
+          </div>
+        </div>
+      `).join('');
+    }
 
-            txStore.add(transactionData).onsuccess = () => {
-                // Pengecekan Notifikasi Warning Pasca Transaksi
-                if (type === 'expense') {
-                    checkPostTransactionWarning(walletId);
-                } else {
-                    alert("Transaksi berhasil dicatat!");
-                }
+    // 6. Fitur Backup Data
+    function exportData() {
+      const backupData = { wallets, transactions };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `backup_keuangan_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
 
-                document.getElementById('tx-amount').value = '';
-                document.getElementById('tx-note').value = '';
-                renderTransactions();
-                renderWallets();
-            };
-        }
-
-        function checkPostTransactionWarning(walletId) {
-            const txW = db.transaction("wallets", "readonly");
-            txW.objectStore("wallets").get(walletId).onsuccess = (e) => {
-                const wallet = e.target.result;
-                if (wallet && wallet.limit > 0) {
-                    const txT = db.transaction("transactions", "readonly");
-                    txT.objectStore("transactions").getAll().onsuccess = (ev) => {
-                        const allTx = ev.target.result;
-                        const totalExpense = allTx.filter(t => t.walletId === walletId && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-                        const percent = Math.round((totalExpense / wallet.limit) * 100);
-
-                        if (percent >= 100) {
-                            alert(`⚠️ BAHAYA! Pengeluaran pada dompet "${wallet.name}" telah MELEBIHI LIMIT BULANAN! (${percent}%)\nTotal Pengeluaran: Rp ${totalExpense.toLocaleString('id-ID')} / Limit: Rp ${wallet.limit.toLocaleString('id-ID')}`);
-                        } else if (percent >= 75) {
-                            alert(`⚠️ PERINGATAN! Pengeluaran pada dompet "${wallet.name}" sudah mencapai ${percent}% dari limit bulanan.\nSisa limit: Rp ${(wallet.limit - totalExpense).toLocaleString('id-ID')}`);
-                        } else {
-                            alert("Transaksi berhasil dicatat!");
-                        }
-                    };
-                } else {
-                    alert("Transaksi berhasil dicatat!");
-                }
-            };
-        }
-
-        function renderTransactions() {
-            const txT = db.transaction("transactions", "readonly");
-            txT.objectStore("transactions").getAll().onsuccess = (e) => {
-                const transactions = e.target.result.reverse();
-                
-                const txW = db.transaction("wallets", "readonly");
-                txW.objectStore("wallets").getAll().onsuccess = (ev) => {
-                    const wallets = ev.target.result;
-                    const walletMap = {};
-                    wallets.forEach(w => walletMap[w.id] = w.name);
-
-                    const listContainer = document.getElementById('tx-list');
-                    if (transactions.length === 0) {
-                        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">Belum ada riwayat transaksi</div>`;
-                        return;
-                    }
-
-                    listContainer.innerHTML = transactions.map(t => {
-                        const dateFormatted = new Date(t.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-                        const isExpense = t.type === 'expense';
-                        return `
-                            <div class="p-3 flex justify-between items-center text-xs">
-                                <div>
-                                    <p class="font-bold text-slate-800">${t.note}</p>
-                                    <p class="text-[10px] text-slate-400">${dateFormatted} • Dompet: <span class="font-semibold text-slate-600">${walletMap[t.walletId] || 'Tidak Diketahui'}</span></p>
-                                </div>
-                                <span class="${isExpense ? 'text-red-500' : 'text-emerald-600'} font-bold">
-                                    ${isExpense ? '-' : '+'}Rp ${t.amount.toLocaleString('id-ID')}
-                                </span>
-                            </div>
-                        `;
-                    }).join('');
-                };
-            };
-        }
-
-        function clearAllTransactions() {
-            if (confirm("Hapus seluruh riwayat transaksi? Catatan pengeluaran akan di-reset.")) {
-                const tx = db.transaction("transactions", "readwrite");
-                tx.objectStore("transactions").clear().onsuccess = () => {
-                    renderTransactions();
-                    renderWallets();
-                };
-            }
-        }
-
-        // --- BACKUP & RESTORE ---
-        function exportData() {
-            const txW = db.transaction("wallets", "readonly");
-            txW.objectStore("wallets").getAll().onsuccess = (e) => {
-                const wallets = e.target.result;
-                const txT = db.transaction("transactions", "readonly");
-                txT.objectStore("transactions").getAll().onsuccess = (ev) => {
-                    const transactions = ev.target.result;
-                    const backupData = { wallets, transactions };
-
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
-                    const dlAnchorElem = document.createElement('a');
-                    dlAnchorElem.setAttribute("href", dataStr);
-                    dlAnchorElem.setAttribute("download", `keuangan_backup_${new Date().toISOString().slice(0,10)}.json`);
-                    dlAnchorElem.click();
-                };
-            };
-        }
-
-        function importData(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.wallets && data.transactions) {
-                        const tx = db.transaction(["wallets", "transactions"], "readwrite");
-                        const walletStore = tx.objectStore("wallets");
-                        const txStore = tx.objectStore("transactions");
-
-                        data.wallets.forEach(w => { delete w.id; walletStore.add(w); });
-                        data.transactions.forEach(t => { delete t.id; txStore.add(t); });
-
-                        tx.oncomplete = () => {
-                            alert("Data keuangan berhasil dipulihkan!");
-                            renderWallets();
-                            renderTransactions();
-                        };
-                    } else {
-                        alert("Format file JSON tidak sesuai!");
-                    }
-                } catch (err) {
-                    alert("Gagal membaca file backup!");
-                }
-            };
-            fileReader.readAsText(event.target.files[0]);
-        }
-    </script>
+    render();
+  </script>
 </body>
 </html>
