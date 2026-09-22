@@ -24,16 +24,20 @@
         <button onclick="toggleModalWallet()" class="text-xs bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-2 rounded-xl transition font-medium">
           Atur Dompet
         </button>
-        <button onclick="exportData()" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl transition font-medium">
-          Backup
+        <button onclick="exportData()" title="Backup Data" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-2.5 py-2 rounded-xl transition font-medium">
+          📤 Backup
         </button>
+        <button onclick="document.getElementById('import-input').click()" title="Restore Data" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-2.5 py-2 rounded-xl transition font-medium">
+          📥 Restore
+        </button>
+        <input type="file" id="import-input" accept=".json" class="hidden" onchange="importData(event)">
       </div>
     </div>
   </header>
 
   <main class="max-w-md mx-auto px-4 mt-6 space-y-6">
 
-    <!-- Area Peringatan (Alert Banner Mingguan) -->
+    <!-- Area Peringatan (Alert Banner Mingguan & Bulanan) -->
     <div id="warning-container" class="space-y-2">
       <!-- Rendered by JS -->
     </div>
@@ -101,7 +105,7 @@
 
   <!-- Modal Kelola Dompet -->
   <div id="modal-wallet" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
         <h3 class="font-bold text-slate-800">Kelola Dompet</h3>
         <button onclick="toggleModalWallet()" class="text-slate-400 hover:text-slate-600">✕</button>
@@ -115,15 +119,18 @@
           <input type="text" id="wallet-name" placeholder="Misal: Tabungan" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Target Nominal Saldo Awal (Rp)</label>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Target Saldo Awal (Rp)</label>
           <input type="number" id="wallet-budget" placeholder="1000000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Maksimal Pengeluaran Per Minggu (Rp)</label>
           <input type="number" id="wallet-max-limit" placeholder="500000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <p class="text-[10px] text-slate-400 mt-1">Peringatan mingguan akan muncul jika pengeluaran minggu ini melewati batas.</p>
         </div>
-        <div class="flex gap-2">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Maksimal Pengeluaran Per Bulan (Rp)</label>
+          <input type="number" id="wallet-monthly-limit" placeholder="2000000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="flex gap-2 pt-1">
           <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs">
             Simpan Dompet
           </button>
@@ -134,7 +141,7 @@
       </form>
 
       <!-- Daftar Dompet Saat Ini -->
-      <div class="space-y-2 pt-2 border-t border-slate-100 max-h-48 overflow-y-auto" id="modal-wallet-list">
+      <div class="space-y-2 pt-2 border-t border-slate-100" id="modal-wallet-list">
         <!-- Rendered by JS -->
       </div>
     </div>
@@ -143,22 +150,24 @@
   <script>
     // 1. Inisialisasi Data Default
     const defaultWallets = [
-      { id: 'holiday', name: 'Holiday', budget: 2900000, maxLimit: 750000, color: 'bg-emerald-500' },
-      { id: 'personal', name: 'Keperluan Sendiri', budget: 1600000, maxLimit: 400000, color: 'bg-blue-500' },
-      { id: 'emergency', name: 'Dana Darurat', budget: 1500000, maxLimit: 200000, color: 'bg-amber-500' }
+      { id: 'holiday', name: 'Holiday', budget: 2900000, maxLimit: 750000, monthlyLimit: 2500000, color: 'bg-emerald-500' },
+      { id: 'personal', name: 'Keperluan Sendiri', budget: 1600000, maxLimit: 400000, monthlyLimit: 1500000, color: 'bg-blue-500' },
+      { id: 'emergency', name: 'Dana Darurat', budget: 1500000, maxLimit: 200000, monthlyLimit: 800000, color: 'bg-amber-500' }
     ];
 
     const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500', 'bg-cyan-500'];
 
     let wallets = JSON.parse(localStorage.getItem('my_wallets')) || defaultWallets;
     
+    // Pastikan properti limit bulanan ada jika data lama dimuat
     wallets = wallets.map(w => ({
       ...w,
-      maxLimit: w.maxLimit || 500000
+      maxLimit: w.maxLimit || 500000,
+      monthlyLimit: w.monthlyLimit || 2000000
     }));
 
     let transactions = JSON.parse(localStorage.getItem('my_tx')) || [];
-    let currentTxType = 'out'; // 'out' atau 'in'
+    let currentTxType = 'out';
 
     function saveData() {
       localStorage.setItem('my_wallets', JSON.stringify(wallets));
@@ -176,6 +185,13 @@
       const diffTime = today - txDate;
       const diffDays = diffTime / (1000 * 60 * 60 * 24);
       return diffDays >= 0 && diffDays <= 7;
+    }
+
+    function isWithinCurrentMonth(dateString) {
+      if (!dateString) return false;
+      const txDate = new Date(dateString);
+      const today = new Date();
+      return txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
     }
 
     function setTxType(type) {
@@ -200,7 +216,7 @@
     // 2. Render Tampilan Utama
     function render() {
       const walletStats = {};
-      wallets.forEach(w => walletStats[w.id] = { spent: 0, weeklySpent: 0, income: 0 });
+      wallets.forEach(w => walletStats[w.id] = { spent: 0, weeklySpent: 0, monthlySpent: 0, income: 0 });
 
       let totalNetBalance = 0;
       wallets.forEach(w => totalNetBalance += Number(w.budget));
@@ -218,6 +234,9 @@
             if (isWithinCurrentWeek(tx.fullDate)) {
               walletStats[tx.walletId].weeklySpent += amount;
             }
+            if (isWithinCurrentMonth(tx.fullDate)) {
+              walletStats[tx.walletId].monthlySpent += amount;
+            }
           }
         }
       });
@@ -225,7 +244,7 @@
       // Update Total Sisa Saldo Keseluruhan
       document.getElementById('total-saldo').innerText = formatRupiah(totalNetBalance);
 
-      // Render Peringatan Mingguan & Kartu Dompet
+      // Render Peringatan Mingguan & Bulanan
       const warningContainer = document.getElementById('warning-container');
       warningContainer.innerHTML = '';
       
@@ -233,48 +252,74 @@
       walletListEl.innerHTML = '';
 
       wallets.forEach(w => {
-        const stats = walletStats[w.id] || { spent: 0, weeklySpent: 0, income: 0 };
+        const stats = walletStats[w.id] || { spent: 0, weeklySpent: 0, monthlySpent: 0, income: 0 };
         const remaining = Number(w.budget) + stats.income - stats.spent;
         const maxLimit = Number(w.maxLimit) || 1;
+        const monthlyLimit = Number(w.monthlyLimit) || 1;
+        
         const percentWeekly = Math.round((stats.weeklySpent / maxLimit) * 100);
+        const percentMonthly = Math.round((stats.monthlySpent / monthlyLimit) * 100);
 
+        // Cek Peringatan Mingguan
         if (percentWeekly >= 80) {
           const isOver = percentWeekly >= 100;
           warningContainer.innerHTML += `
-            <div class="p-3.5 rounded-2xl border ${isOver ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'} flex items-start gap-3 shadow-sm">
-              <span class="text-lg">${isOver ? '🚨' : '⚠️'}</span>
+            <div class="p-3 rounded-2xl border ${isOver ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'} flex items-start gap-3 shadow-sm">
+              <span class="text-base">${isOver ? '🚨' : '⚠️'}</span>
               <div class="text-xs">
-                <span class="font-bold block mb-0.5">${isOver ? 'Batas Mingguan Terlewati!' : 'Peringatan Batas Mingguan!'}</span>
-                Dompet <b class="underline">${w.name}</b> minggu ini sudah mencapai <b>${percentWeekly}%</b> (${formatRupiah(stats.weeklySpent)} / ${formatRupiah(maxLimit)}).
+                <span class="font-bold block mb-0.5">${isOver ? 'Limit Minggu Ini Terlewati!' : 'Peringatan Limit Mingguan!'}</span>
+                Dompet <b class="underline">${w.name}</b> minggu ini mencapai <b>${percentWeekly}%</b> (${formatRupiah(stats.weeklySpent)} / ${formatRupiah(maxLimit)}).
+              </div>
+            </div>
+          `;
+        }
+
+        // Cek Peringatan Bulanan
+        if (percentMonthly >= 80) {
+          const isOverMonthly = percentMonthly >= 100;
+          warningContainer.innerHTML += `
+            <div class="p-3 rounded-2xl border ${isOverMonthly ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-orange-50 border-orange-200 text-orange-800'} flex items-start gap-3 shadow-sm">
+              <span class="text-base">📅</span>
+              <div class="text-xs">
+                <span class="font-bold block mb-0.5">${isOverMonthly ? 'Limit Bulan Ini Jebol!' : 'Peringatan Limit Bulanan!'}</span>
+                Dompet <b class="underline">${w.name}</b> bulan ini mencapai <b>${percentMonthly}%</b> (${formatRupiah(stats.monthlySpent)} / ${formatRupiah(monthlyLimit)}).
               </div>
             </div>
           `;
         }
 
         walletListEl.innerHTML += `
-          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-            <div class="flex justify-between items-start mb-2">
+          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3">
+            <div class="flex justify-between items-center">
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full ${w.color || 'bg-indigo-500'}"></span>
                 <span class="font-bold text-slate-700 text-sm">${w.name}</span>
               </div>
-              <span class="text-xs font-semibold ${percentWeekly >= 100 ? 'text-red-500' : percentWeekly >= 80 ? 'text-amber-500' : 'text-slate-400'}">
-                ${percentWeekly}% Minggu Ini
+              <span class="text-[10px] font-semibold bg-slate-100 px-2 py-1 rounded-lg text-slate-600">
+                Bulan Ini: ${percentMonthly}%
               </span>
             </div>
-            <div class="flex justify-between items-end mt-1">
+            
+            <div class="flex justify-between items-end">
               <div>
                 <p class="text-[10px] text-slate-400 uppercase tracking-wide">Sisa Uang Dompet</p>
                 <p class="text-base font-extrabold text-slate-800">${formatRupiah(remaining)}</p>
               </div>
-              <div class="text-right">
-                <p class="text-[10px] text-slate-400">Limit/Minggu: ${formatRupiah(w.maxLimit)}</p>
-                <p class="text-[10px] text-slate-500">Keluar Mgg Ini: ${formatRupiah(stats.weeklySpent)}</p>
+              <div class="text-right text-[10px] text-slate-500 space-y-0.5">
+                <p>Keluar Mgg: <span class="font-bold text-slate-700">${formatRupiah(stats.weeklySpent)}</span></p>
+                <p>Keluar Bln: <span class="font-bold text-slate-700">${formatRupiah(stats.monthlySpent)}</span></p>
               </div>
             </div>
-            <!-- Progress Bar Mingguan -->
-            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
-              <div class="${percentWeekly >= 100 ? 'bg-red-500' : percentWeekly >= 80 ? 'bg-amber-500' : (w.color || 'bg-indigo-500')} h-1.5 rounded-full transition-all duration-300" style="width: ${Math.min(percentWeekly, 100)}%"></div>
+            
+            <!-- Progress Bar Bulanan -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                <span>Progress Bulanan</span>
+                <span>Limit: ${formatRupiah(monthlyLimit)}</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="${percentMonthly >= 100 ? 'bg-rose-500' : percentMonthly >= 80 ? 'bg-amber-500' : (w.color || 'bg-indigo-500')} h-1.5 rounded-full transition-all duration-300" style="width: ${Math.min(percentMonthly, 100)}%"></div>
+              </div>
             </div>
           </div>
         `;
@@ -289,11 +334,9 @@
       walletTxSectionsEl.innerHTML = '';
 
       wallets.forEach(w => {
-        // Ambil transaksi khusus dompet ini
         const walletTxs = transactions.map((tx, idx) => ({ ...tx, realIndex: idx }))
                                       .filter(tx => tx.walletId === w.id);
         
-        // Hitung total pengeluaran keseluruhan untuk dompet ini
         const totalWalletSpent = walletTxs.reduce((sum, tx) => tx.type === 'out' ? sum + Number(tx.amount) : sum, 0);
 
         let txItemsHtml = '';
@@ -322,7 +365,6 @@
           }).join('');
         }
 
-        // Buat Card Kotak Per Dompet
         walletTxSectionsEl.innerHTML += `
           <div class="bg-slate-100/70 p-4 rounded-2xl border border-slate-200/60 space-y-3">
             <div class="flex justify-between items-center pb-2 border-b border-slate-200/60">
@@ -398,6 +440,7 @@
       const name = document.getElementById('wallet-name').value;
       const budget = Number(document.getElementById('wallet-budget').value);
       const maxLimit = Number(document.getElementById('wallet-max-limit').value);
+      const monthlyLimit = Number(document.getElementById('wallet-monthly-limit').value);
 
       if (editId) {
         const wallet = wallets.find(w => w.id === editId);
@@ -405,6 +448,7 @@
           wallet.name = name;
           wallet.budget = budget;
           wallet.maxLimit = maxLimit;
+          wallet.monthlyLimit = monthlyLimit;
         }
       } else {
         const newWallet = {
@@ -412,6 +456,7 @@
           name,
           budget,
           maxLimit,
+          monthlyLimit,
           color: colors[wallets.length % colors.length]
         };
         wallets.push(newWallet);
@@ -429,6 +474,7 @@
         document.getElementById('wallet-name').value = wallet.name;
         document.getElementById('wallet-budget').value = wallet.budget;
         document.getElementById('wallet-max-limit').value = wallet.maxLimit;
+        document.getElementById('wallet-monthly-limit').value = wallet.monthlyLimit || 2000000;
       }
     }
 
@@ -449,6 +495,7 @@
       document.getElementById('wallet-name').value = '';
       document.getElementById('wallet-budget').value = '';
       document.getElementById('wallet-max-limit').value = '';
+      document.getElementById('wallet-monthly-limit').value = '';
     }
 
     function renderModalWalletList() {
@@ -457,7 +504,7 @@
         <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 border border-slate-100">
           <div>
             <p class="font-bold text-xs text-slate-700">${w.name}</p>
-            <p class="text-[10px] text-slate-400">Limit/Minggu: ${formatRupiah(w.maxLimit)}</p>
+            <p class="text-[10px] text-slate-400">Limit: Mgg (${formatRupiah(w.maxLimit)}) | Bln (${formatRupiah(w.monthlyLimit || 0)})</p>
           </div>
           <div class="flex gap-2">
             <button onclick="editWallet('${w.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">Edit</button>
@@ -467,7 +514,7 @@
       `).join('');
     }
 
-    // 6. Fitur Backup Data
+    // 6. Fitur Backup & Restore (Import/Export JSON)
     function exportData() {
       const backupData = { wallets, transactions };
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
@@ -477,6 +524,31 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.wallets && parsed.transactions) {
+            wallets = parsed.wallets;
+            transactions = parsed.transactions;
+            saveData();
+            render();
+            alert('Data berhasil dipulihkan (Restore)!');
+          } else {
+            alert('Format file cadangan tidak valid.');
+          }
+        } catch (err) {
+          alert('Gagal membaca file JSON.');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = ''; // Reset input
     }
 
     render();
