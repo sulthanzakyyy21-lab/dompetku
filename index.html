@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dompet Ku - Multi Bank</title>
+  <title>Dompet Ku</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,21 +17,18 @@
   <header class="bg-indigo-600 text-white p-6 shadow-lg rounded-b-3xl max-w-md mx-auto">
     <div class="flex justify-between items-center mb-4">
       <div>
-        <p class="text-xs text-indigo-200 uppercase tracking-wider font-semibold">Total Sisa Uang (Semua Bank)</p>
+        <p class="text-xs text-indigo-200 uppercase tracking-wider font-semibold">Total Sisa Uang</p>
         <h1 id="total-saldo" class="text-3xl font-extrabold mt-1">Rp 0</h1>
       </div>
-      <div class="flex gap-1.5 flex-wrap justify-end">
-        <button onclick="toggleModalBank()" class="text-[11px] bg-indigo-500 hover:bg-indigo-400 text-white px-2.5 py-2 rounded-xl transition font-medium">
-          🏦 Atur Bank
+      <div class="flex gap-2">
+        <button onclick="toggleModalWallet()" class="text-xs bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-2 rounded-xl transition font-medium">
+          Atur Dompet
         </button>
-        <button onclick="toggleModalWallet()" class="text-[11px] bg-indigo-500 hover:bg-indigo-400 text-white px-2.5 py-2 rounded-xl transition font-medium">
-          👛 Atur Dompet
+        <button onclick="exportData()" title="Backup Data" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-2.5 py-2 rounded-xl transition font-medium">
+          📤 Backup
         </button>
-        <button onclick="exportData()" title="Backup Data" class="text-[11px] bg-indigo-700 hover:bg-indigo-800 text-white px-2 py-2 rounded-xl transition">
-          📤
-        </button>
-        <button onclick="document.getElementById('import-input').click()" title="Restore Data" class="text-[11px] bg-indigo-700 hover:bg-indigo-800 text-white px-2 py-2 rounded-xl transition">
-          📥
+        <button onclick="document.getElementById('import-input').click()" title="Restore Data" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-2.5 py-2 rounded-xl transition font-medium">
+          📥 Restore
         </button>
         <input type="file" id="import-input" accept=".json" class="hidden" onchange="importData(event)">
       </div>
@@ -45,20 +42,10 @@
       <!-- Rendered by JS -->
     </div>
 
-    <!-- Ringkasan Bank / Akun -->
-    <section>
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Daftar Akun Bank / Sumber Dana</h2>
-      </div>
-      <div id="bank-summary-list" class="grid grid-cols-2 gap-3">
-        <!-- Rendered by JS -->
-      </div>
-    </section>
-
     <!-- Ringkasan Dompet -->
     <section>
       <div class="flex justify-between items-center mb-3">
-        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Alokasi Dompet</h2>
+        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Dompet Saya</h2>
       </div>
       <div id="wallet-list" class="grid grid-cols-1 gap-3">
         <!-- Rendered by JS -->
@@ -81,7 +68,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Pilih Dompet (Sumber Bank Mengikuti)</label>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Pilih Dompet</label>
           <select id="tx-wallet" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
             <!-- Rendered by JS -->
           </select>
@@ -116,42 +103,6 @@
 
   </main>
 
-  <!-- Modal Kelola Bank -->
-  <div id="modal-bank" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-slate-800">Kelola Akun Bank</h3>
-        <button onclick="toggleModalBank()" class="text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-
-      <!-- Form Tambah/Ubah Bank -->
-      <form onsubmit="saveBank(event)" class="space-y-3 pt-2 border-t border-slate-100">
-        <input type="hidden" id="bank-edit-id">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Bank / Sumber Dana</label>
-          <input type="text" id="bank-name" placeholder="Misal: BCA / Cash" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Saldo Awal (Rp)</label>
-          <input type="number" id="bank-balance" placeholder="1500000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        </div>
-        <div class="flex gap-2 pt-1">
-          <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs">
-            Simpan Bank
-          </button>
-          <button type="button" onclick="resetBankForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-3 rounded-xl text-xs">
-            Batal
-          </button>
-        </div>
-      </form>
-
-      <!-- Daftar Bank Saat Ini -->
-      <div class="space-y-2 pt-2 border-t border-slate-100" id="modal-bank-list">
-        <!-- Rendered by JS -->
-      </div>
-    </div>
-  </div>
-
   <!-- Modal Kelola Dompet -->
   <div id="modal-wallet" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
@@ -165,24 +116,18 @@
         <input type="hidden" id="wallet-edit-id">
         <div>
           <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Dompet</label>
-          <input type="text" id="wallet-name" placeholder="Misal: Holiday" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <input type="text" id="wallet-name" placeholder="Misal: Tabungan" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Ambil Saldo Dari Bank Mana?</label>
-          <select id="wallet-bank-id" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
-            <!-- Rendered by JS -->
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Target Alokasi Awal (Rp)</label>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Target Saldo Awal (Rp)</label>
           <input type="number" id="wallet-budget" placeholder="1000000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Limit Pengeluaran Per Minggu (Rp)</label>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Maksimal Pengeluaran Per Minggu (Rp)</label>
           <input type="number" id="wallet-max-limit" placeholder="500000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Limit Pengeluaran Per Bulan (Rp)</label>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Maksimal Pengeluaran Per Bulan (Rp)</label>
           <input type="number" id="wallet-monthly-limit" placeholder="2000000" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
         <div class="flex gap-2 pt-1">
@@ -204,26 +149,27 @@
 
   <script>
     // 1. Inisialisasi Data Default
-    const defaultBanks = [
-      { id: 'b_bca', name: 'BCA', initialBalance: 3000000, color: 'bg-blue-500' },
-      { id: 'b_cash', name: 'Dompet Fisik / Cash', initialBalance: 1500000, color: 'bg-emerald-500' }
-    ];
-
     const defaultWallets = [
-      { id: 'holiday', name: 'Holiday', bankId: 'b_bca', budget: 2900000, maxLimit: 750000, monthlyLimit: 2500000, color: 'bg-emerald-500' },
-      { id: 'personal', name: 'Keperluan Sendiri', bankId: 'b_bca', budget: 1600000, maxLimit: 400000, monthlyLimit: 1500000, color: 'bg-blue-500' },
-      { id: 'emergency', name: 'Dana Darurat', bankId: 'b_cash', budget: 1500000, maxLimit: 200000, monthlyLimit: 800000, color: 'bg-amber-500' }
+      { id: 'holiday', name: 'Holiday', budget: 2900000, maxLimit: 750000, monthlyLimit: 2500000, color: 'bg-emerald-500' },
+      { id: 'personal', name: 'Keperluan Sendiri', budget: 1600000, maxLimit: 400000, monthlyLimit: 1500000, color: 'bg-blue-500' },
+      { id: 'emergency', name: 'Dana Darurat', budget: 1500000, maxLimit: 200000, monthlyLimit: 800000, color: 'bg-amber-500' }
     ];
 
     const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500', 'bg-cyan-500'];
 
-    let banks = JSON.parse(localStorage.getItem('my_banks')) || defaultBanks;
     let wallets = JSON.parse(localStorage.getItem('my_wallets')) || defaultWallets;
+    
+    // Pastikan properti limit bulanan ada jika data lama dimuat
+    wallets = wallets.map(w => ({
+      ...w,
+      maxLimit: w.maxLimit || 500000,
+      monthlyLimit: w.monthlyLimit || 2000000
+    }));
+
     let transactions = JSON.parse(localStorage.getItem('my_tx')) || [];
     let currentTxType = 'out';
 
     function saveData() {
-      localStorage.setItem('my_banks', JSON.stringify(banks));
       localStorage.setItem('my_wallets', JSON.stringify(wallets));
       localStorage.setItem('my_tx', JSON.stringify(transactions));
     }
@@ -269,59 +215,34 @@
 
     // 2. Render Tampilan Utama
     function render() {
-      // Hitung Saldo Tiap Bank
-      const bankBalances = {};
-      banks.forEach(b => {
-        bankBalances[b.id] = Number(b.initialBalance) || 0;
-      });
-
       const walletStats = {};
       wallets.forEach(w => walletStats[w.id] = { spent: 0, weeklySpent: 0, monthlySpent: 0, income: 0 });
 
-      transactions.forEach(tx => {
-        const wallet = wallets.find(w => w.id === tx.walletId);
-        if (wallet) {
-          const amount = Number(tx.amount);
-          // Update Bank Balance
-          if (bankBalances[wallet.bankId] !== undefined) {
-            if (tx.type === 'in') {
-              bankBalances[wallet.bankId] += amount;
-              walletStats[tx.walletId].income += amount;
-            } else {
-              bankBalances[wallet.bankId] -= amount;
-              walletStats[tx.walletId].spent += amount;
+      let totalNetBalance = 0;
+      wallets.forEach(w => totalNetBalance += Number(w.budget));
 
-              if (isWithinCurrentWeek(tx.fullDate)) {
-                walletStats[tx.walletId].weeklySpent += amount;
-              }
-              if (isWithinCurrentMonth(tx.fullDate)) {
-                walletStats[tx.walletId].monthlySpent += amount;
-              }
+      transactions.forEach(tx => {
+        if (walletStats[tx.walletId]) {
+          const amount = Number(tx.amount);
+          if (tx.type === 'in') {
+            walletStats[tx.walletId].income += amount;
+            totalNetBalance += amount;
+          } else {
+            walletStats[tx.walletId].spent += amount;
+            totalNetBalance -= amount;
+
+            if (isWithinCurrentWeek(tx.fullDate)) {
+              walletStats[tx.walletId].weeklySpent += amount;
+            }
+            if (isWithinCurrentMonth(tx.fullDate)) {
+              walletStats[tx.walletId].monthlySpent += amount;
             }
           }
         }
       });
 
-      // Hitung Total Sisa Saldo Semua Bank
-      let totalNetBalance = 0;
-      Object.values(bankBalances).forEach(bal => totalNetBalance += bal);
+      // Update Total Sisa Saldo Keseluruhan
       document.getElementById('total-saldo').innerText = formatRupiah(totalNetBalance);
-
-      // Render Bank Summary List
-      const bankSummaryListEl = document.getElementById('bank-summary-list');
-      bankSummaryListEl.innerHTML = '';
-      banks.forEach(b => {
-        const currentBal = bankBalances[b.id] !== undefined ? bankBalances[b.id] : Number(b.initialBalance);
-        bankSummaryListEl.innerHTML += `
-          <div class="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="w-2.5 h-2.5 rounded-full ${b.color || 'bg-indigo-500'}"></span>
-              <span class="font-bold text-slate-700 text-xs truncate">${b.name}</span>
-            </div>
-            <p class="text-sm font-extrabold text-slate-900 mt-1">${formatRupiah(currentBal)}</p>
-          </div>
-        `;
-      });
 
       // Render Peringatan Mingguan & Bulanan
       const warningContainer = document.getElementById('warning-container');
@@ -335,32 +256,33 @@
         const remaining = Number(w.budget) + stats.income - stats.spent;
         const maxLimit = Number(w.maxLimit) || 1;
         const monthlyLimit = Number(w.monthlyLimit) || 1;
-        const linkedBank = banks.find(b => b.id === w.bankId);
         
         const percentWeekly = Math.round((stats.weeklySpent / maxLimit) * 100);
         const percentMonthly = Math.round((stats.monthlySpent / monthlyLimit) * 100);
 
+        // Cek Peringatan Mingguan
         if (percentWeekly >= 80) {
           const isOver = percentWeekly >= 100;
           warningContainer.innerHTML += `
             <div class="p-3 rounded-2xl border ${isOver ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'} flex items-start gap-3 shadow-sm">
               <span class="text-base">${isOver ? '🚨' : '⚠️'}</span>
               <div class="text-xs">
-                <span class="font-bold block mb-0.5">Limit Minggu Ini (${w.name}) Terlewati!</span>
-                Mencapai <b>${percentWeekly}%</b> (${formatRupiah(stats.weeklySpent)} / ${formatRupiah(maxLimit)}).
+                <span class="font-bold block mb-0.5">${isOver ? 'Limit Minggu Ini Terlewati!' : 'Peringatan Limit Mingguan!'}</span>
+                Dompet <b class="underline">${w.name}</b> minggu ini mencapai <b>${percentWeekly}%</b> (${formatRupiah(stats.weeklySpent)} / ${formatRupiah(maxLimit)}).
               </div>
             </div>
           `;
         }
 
+        // Cek Peringatan Bulanan
         if (percentMonthly >= 80) {
           const isOverMonthly = percentMonthly >= 100;
           warningContainer.innerHTML += `
             <div class="p-3 rounded-2xl border ${isOverMonthly ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-orange-50 border-orange-200 text-orange-800'} flex items-start gap-3 shadow-sm">
               <span class="text-base">📅</span>
               <div class="text-xs">
-                <span class="font-bold block mb-0.5">Limit Bulan Ini (${w.name}) Jebol!</span>
-                Mencapai <b>${percentMonthly}%</b> (${formatRupiah(stats.monthlySpent)} / ${formatRupiah(monthlyLimit)}).
+                <span class="font-bold block mb-0.5">${isOverMonthly ? 'Limit Bulan Ini Jebol!' : 'Peringatan Limit Bulanan!'}</span>
+                Dompet <b class="underline">${w.name}</b> bulan ini mencapai <b>${percentMonthly}%</b> (${formatRupiah(stats.monthlySpent)} / ${formatRupiah(monthlyLimit)}).
               </div>
             </div>
           `;
@@ -371,10 +293,7 @@
             <div class="flex justify-between items-center">
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full ${w.color || 'bg-indigo-500'}"></span>
-                <div>
-                  <span class="font-bold text-slate-700 text-sm block">${w.name}</span>
-                  <span class="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-md">Bank: ${linkedBank ? linkedBank.name : 'Tidak Diketahui'}</span>
-                </div>
+                <span class="font-bold text-slate-700 text-sm">${w.name}</span>
               </div>
               <span class="text-[10px] font-semibold bg-slate-100 px-2 py-1 rounded-lg text-slate-600">
                 Bulan Ini: ${percentMonthly}%
@@ -383,7 +302,7 @@
             
             <div class="flex justify-between items-end">
               <div>
-                <p class="text-[10px] text-slate-400 uppercase tracking-wide">Sisa Alokasi Dompet</p>
+                <p class="text-[10px] text-slate-400 uppercase tracking-wide">Sisa Uang Dompet</p>
                 <p class="text-base font-extrabold text-slate-800">${formatRupiah(remaining)}</p>
               </div>
               <div class="text-right text-[10px] text-slate-500 space-y-0.5">
@@ -392,6 +311,7 @@
               </div>
             </div>
             
+            <!-- Progress Bar Bulanan -->
             <div class="space-y-1">
               <div class="flex justify-between text-[10px] text-slate-400 font-medium">
                 <span>Progress Bulanan</span>
@@ -405,16 +325,9 @@
         `;
       });
 
-      // Render Select Option Form Transaksi
+      // Render Select Option Form
       const selectEl = document.getElementById('tx-wallet');
-      selectEl.innerHTML = wallets.map(w => {
-        const b = banks.find(item => item.id === w.bankId);
-        return `<option value="${w.id}">${w.name} (${b ? b.name : 'Bank'})</option>`;
-      }).join('');
-
-      // Render Select Option di Form Dompet (Pilih Bank)
-      const selectBankWalletEl = document.getElementById('wallet-bank-id');
-      selectBankWalletEl.innerHTML = banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      selectEl.innerHTML = wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
 
       // Render Riwayat Transaksi Dipisah Per Dompet
       const walletTxSectionsEl = document.getElementById('wallet-tx-sections');
@@ -425,7 +338,6 @@
                                       .filter(tx => tx.walletId === w.id);
         
         const totalWalletSpent = walletTxs.reduce((sum, tx) => tx.type === 'out' ? sum + Number(tx.amount) : sum, 0);
-        const linkedBank = banks.find(b => b.id === w.bankId);
 
         let txItemsHtml = '';
         if (walletTxs.length === 0) {
@@ -458,10 +370,7 @@
             <div class="flex justify-between items-center pb-2 border-b border-slate-200/60">
               <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full ${w.color || 'bg-indigo-500'}"></span>
-                <div>
-                  <span class="font-bold text-slate-800 text-sm block">${w.name}</span>
-                  <span class="text-[10px] text-slate-500">Sumber: <b class="text-slate-700">${linkedBank ? linkedBank.name : '-'}</b></span>
-                </div>
+                <span class="font-bold text-slate-800 text-sm">${w.name}</span>
               </div>
               <div class="text-right">
                 <span class="text-[10px] text-slate-400 block uppercase font-semibold">Total Pengeluaran</span>
@@ -475,7 +384,6 @@
         `;
       });
 
-      renderModalBankList();
       renderModalWalletList();
     }
 
@@ -487,7 +395,7 @@
       const desc = document.getElementById('tx-desc').value;
 
       if (!walletId) {
-        alert('Pilih dompet terlebih dahulu!');
+        alert('Buat dompet terlebih dahulu!');
         return;
       }
 
@@ -519,89 +427,7 @@
       }
     }
 
-    // 5. Kelola Bank
-    function toggleModalBank() {
-      const modal = document.getElementById('modal-bank');
-      modal.classList.toggle('hidden');
-      modal.classList.toggle('flex');
-    }
-
-    function saveBank(e) {
-      e.preventDefault();
-      const editId = document.getElementById('bank-edit-id').value;
-      const name = document.getElementById('bank-name').value;
-      const initialBalance = Number(document.getElementById('bank-balance').value);
-
-      if (editId) {
-        const bank = banks.find(b => b.id === editId);
-        if (bank) {
-          bank.name = name;
-          bank.initialBalance = initialBalance;
-        }
-      } else {
-        const newBank = {
-          id: 'b_' + Date.now(),
-          name,
-          initialBalance,
-          color: colors[banks.length % colors.length]
-        };
-        banks.push(newBank);
-      }
-
-      saveData();
-      resetBankForm();
-      render();
-    }
-
-    function editBank(id) {
-      const bank = banks.find(b => b.id === id);
-      if (bank) {
-        document.getElementById('bank-edit-id').value = bank.id;
-        document.getElementById('bank-name').value = bank.name;
-        document.getElementById('bank-balance').value = bank.initialBalance;
-      }
-    }
-
-    function deleteBank(id) {
-      const usedByWallet = wallets.some(w => w.bankId === id);
-      if (usedByWallet) {
-        alert('Bank ini sedang digunakan oleh dompet! Ubah atau hapus dompet yang menggunakan bank ini terlebih dahulu.');
-        return;
-      }
-      if (banks.length <= 1) {
-        alert('Setidaknya harus ada 1 akun bank!');
-        return;
-      }
-      if (confirm('Hapus akun bank ini?')) {
-        banks = banks.filter(b => b.id !== id);
-        saveData();
-        render();
-      }
-    }
-
-    function resetBankForm() {
-      document.getElementById('bank-edit-id').value = '';
-      document.getElementById('bank-name').value = '';
-      document.getElementById('bank-balance').value = '';
-    }
-
-    function renderModalBankList() {
-      const modalList = document.getElementById('modal-bank-list');
-      modalList.innerHTML = banks.map(b => `
-        <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 border border-slate-100">
-          <div>
-            <p class="font-bold text-xs text-slate-700">${b.name}</p>
-            <p class="text-[10px] text-slate-400">Saldo Awal: ${formatRupiah(b.initialBalance)}</p>
-          </div>
-          <div class="flex gap-2">
-            <button type="button" onclick="editBank('${b.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">Edit</button>
-            <button type="button" onclick="deleteBank('${b.id}')" class="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // 6. Kelola Dompet
+    // 5. Kelola Dompet
     function toggleModalWallet() {
       const modal = document.getElementById('modal-wallet');
       modal.classList.toggle('hidden');
@@ -612,7 +438,6 @@
       e.preventDefault();
       const editId = document.getElementById('wallet-edit-id').value;
       const name = document.getElementById('wallet-name').value;
-      const bankId = document.getElementById('wallet-bank-id').value;
       const budget = Number(document.getElementById('wallet-budget').value);
       const maxLimit = Number(document.getElementById('wallet-max-limit').value);
       const monthlyLimit = Number(document.getElementById('wallet-monthly-limit').value);
@@ -621,7 +446,6 @@
         const wallet = wallets.find(w => w.id === editId);
         if (wallet) {
           wallet.name = name;
-          wallet.bankId = bankId;
           wallet.budget = budget;
           wallet.maxLimit = maxLimit;
           wallet.monthlyLimit = monthlyLimit;
@@ -630,7 +454,6 @@
         const newWallet = {
           id: 'w_' + Date.now(),
           name,
-          bankId,
           budget,
           maxLimit,
           monthlyLimit,
@@ -649,7 +472,6 @@
       if (wallet) {
         document.getElementById('wallet-edit-id').value = wallet.id;
         document.getElementById('wallet-name').value = wallet.name;
-        document.getElementById('wallet-bank-id').value = wallet.bankId;
         document.getElementById('wallet-budget').value = wallet.budget;
         document.getElementById('wallet-max-limit').value = wallet.maxLimit;
         document.getElementById('wallet-monthly-limit').value = wallet.monthlyLimit || 2000000;
@@ -678,30 +500,27 @@
 
     function renderModalWalletList() {
       const modalList = document.getElementById('modal-wallet-list');
-      modalList.innerHTML = wallets.map(w => {
-        const b = banks.find(item => item.id === w.bankId);
-        return `
-          <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 border border-slate-100">
-            <div>
-              <p class="font-bold text-xs text-slate-700">${w.name} <span class="font-normal text-indigo-600">(${b ? b.name : '-'})</span></p>
-              <p class="text-[10px] text-slate-400">Limit: Mgg (${formatRupiah(w.maxLimit)}) | Bln (${formatRupiah(w.monthlyLimit || 0)})</p>
-            </div>
-            <div class="flex gap-2">
-              <button type="button" onclick="editWallet('${w.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">Edit</button>
-              <button type="button" onclick="deleteWallet('${w.id}')" class="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
-            </div>
+      modalList.innerHTML = wallets.map(w => `
+        <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 border border-slate-100">
+          <div>
+            <p class="font-bold text-xs text-slate-700">${w.name}</p>
+            <p class="text-[10px] text-slate-400">Limit: Mgg (${formatRupiah(w.maxLimit)}) | Bln (${formatRupiah(w.monthlyLimit || 0)})</p>
           </div>
-        `;
-      }).join('');
+          <div class="flex gap-2">
+            <button onclick="editWallet('${w.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">Edit</button>
+            <button onclick="deleteWallet('${w.id}')" class="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
+          </div>
+        </div>
+      `).join('');
     }
 
-    // 7. Fitur Backup & Restore (Import/Export JSON)
+    // 6. Fitur Backup & Restore (Import/Export JSON)
     function exportData() {
-      const backupData = { banks, wallets, transactions };
+      const backupData = { wallets, transactions };
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `backup_keuangan_multibank_${new Date().toISOString().slice(0,10)}.json`);
+      downloadAnchor.setAttribute("download", `backup_keuangan_${new Date().toISOString().slice(0,10)}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -715,8 +534,7 @@
       reader.onload = function(e) {
         try {
           const parsed = JSON.parse(e.target.result);
-          if (parsed.banks && parsed.wallets && parsed.transactions) {
-            banks = parsed.banks;
+          if (parsed.wallets && parsed.transactions) {
             wallets = parsed.wallets;
             transactions = parsed.transactions;
             saveData();
@@ -730,7 +548,7 @@
         }
       };
       reader.readAsText(file);
-      event.target.value = '';
+      event.target.value = ''; // Reset input
     }
 
     render();
