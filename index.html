@@ -335,7 +335,7 @@
 
       wallets.forEach(w => {
         const walletTxs = transactions.map((tx, idx) => ({ ...tx, realIndex: idx }))
-                                    .filter(tx => tx.walletId === w.id);
+                                      .filter(tx => tx.walletId === w.id);
         
         const totalWalletSpent = walletTxs.reduce((sum, tx) => tx.type === 'out' ? sum + Number(tx.amount) : sum, 0);
 
