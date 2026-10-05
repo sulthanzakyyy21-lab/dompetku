@@ -246,23 +246,23 @@
   </div>
 
   <!-- ===== BOTTOM NAV (Mobile) ===== -->
-  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-xl border-t border-slate-200 safe-area-bottom shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-slate-200 safe-area-bottom shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
     <div class="grid grid-cols-4 max-w-md mx-auto">
-      <button onclick="ui.switchTab('dashboard')" id="bnav-dashboard" class="bottom-nav-btn active-bnav flex flex-col items-center gap-1.5 py-3 px-2 transition-all">
-        <span class="text-xl drop-shadow-sm">🏠</span>
-        <span class="text-[10px] font-bold">Beranda</span>
+      <button type="button" onclick="ui.switchTab('dashboard')" id="bnav-dashboard" class="bottom-nav-btn active-bnav flex flex-col items-center gap-1.5 py-3 px-2 transition-all cursor-pointer">
+        <span class="text-xl drop-shadow-sm pointer-events-none">🏠</span>
+        <span class="text-[10px] font-bold pointer-events-none">Beranda</span>
       </button>
-      <button onclick="ui.switchTab('analytics')" id="bnav-analytics" class="bottom-nav-btn flex flex-col items-center gap-1.5 py-3 px-2 transition-all text-slate-400 hover:text-slate-600">
-        <span class="text-xl">📊</span>
-        <span class="text-[10px] font-bold">Analitik</span>
+      <button type="button" onclick="ui.switchTab('analytics')" id="bnav-analytics" class="bottom-nav-btn flex flex-col items-center gap-1.5 py-3 px-2 transition-all text-slate-400 hover:text-slate-600 cursor-pointer">
+        <span class="text-xl pointer-events-none">📊</span>
+        <span class="text-[10px] font-bold pointer-events-none">Analitik</span>
       </button>
-      <button onclick="ui.switchTab('transactions')" id="bnav-transactions" class="bottom-nav-btn flex flex-col items-center gap-1.5 py-3 px-2 transition-all text-slate-400 hover:text-slate-600">
-        <span class="text-xl">📋</span>
-        <span class="text-[10px] font-bold">Riwayat</span>
+      <button type="button" onclick="ui.switchTab('transactions')" id="bnav-transactions" class="bottom-nav-btn flex flex-col items-center gap-1.5 py-3 px-2 transition-all text-slate-400 hover:text-slate-600 cursor-pointer">
+        <span class="text-xl pointer-events-none">📋</span>
+        <span class="text-[10px] font-bold pointer-events-none">Riwayat</span>
       </button>
-      <button onclick="ui.switchTab('add')" id="bnav-add" class="bottom-nav-btn flex flex-col items-center gap-1.5 py-3 px-2 transition-all text-slate-400 hover:text-slate-600">
-        <span class="text-xl">➕</span>
-        <span class="text-[10px] font-bold">Catat</span>
+      <button type="button" onclick="ui.switchTab('add')" id="bnav-add" class="bottom-nav-btn flex flex-col items-center gap-1.5 py-3 px-2 transition-all text-slate-400 hover:text-slate-600 cursor-pointer">
+        <span class="text-xl pointer-events-none">➕</span>
+        <span class="text-[10px] font-bold pointer-events-none">Catat</span>
       </button>
     </div>
   </nav>
