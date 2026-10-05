@@ -3,7 +3,6 @@ const analytics = {
   doughnutChart: null,
 
   renderCharts() {
-    // Filter transaksi berdasarkan bulan & tahun yang dipilih
     const filteredTxs = state.transactions.filter(tx => {
       const d = new Date(tx.fullDate);
       return d.getMonth() === state.filterMonth && d.getFullYear() === state.filterYear;
@@ -18,7 +17,6 @@ const analytics = {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    // Group by day dalam bulan tersebut
     const daysInMonth = new Date(state.filterYear, state.filterMonth + 1, 0).getDate();
     const labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
     const incomeData = new Array(daysInMonth).fill(0);
@@ -37,6 +35,9 @@ const analytics = {
       this.trendChart.destroy();
     }
 
+    Chart.defaults.color = '#64748b'; // slate-500
+    Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -45,36 +46,49 @@ const analytics = {
           {
             label: 'Pemasukan',
             data: incomeData,
-            borderColor: '#10b981', // Emerald
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            tension: 0.3,
-            fill: true
+            borderColor: '#34d399', // emerald-400
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 2,
+            pointBackgroundColor: '#34d399',
+            pointBorderColor: '#ffffff',
+            pointRadius: 3
           },
           {
             label: 'Pengeluaran',
             data: expenseData,
-            borderColor: '#f43f5e', // Rose
-            backgroundColor: 'rgba(244, 63, 94, 0.1)',
-            tension: 0.3,
-            fill: true
+            borderColor: '#fb7185', // rose-400
+            backgroundColor: 'rgba(251, 113, 133, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 2,
+            pointBackgroundColor: '#fb7185',
+            pointBorderColor: '#ffffff',
+            pointRadius: 3
           }
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11, weight: '700' } } }
         },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          x: { 
+            grid: { display: false, color: '#f1f5f9' }, // slate-100 
+            ticks: { font: { size: 10, weight: '600' } } 
+          },
           y: { 
             beginAtZero: true, 
+            grid: { color: '#f1f5f9', borderDash: [4, 4] },
             ticks: { 
-              font: { size: 10 },
+              font: { size: 10, weight: '600' },
               callback: (value) => 'Rp ' + (value / 1000) + 'k' 
             } 
           }
-        }
+        },
+        interaction: { intersect: false, mode: 'index' }
       }
     });
   },
@@ -84,7 +98,6 @@ const analytics = {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    // Group pengeluaran by wallet (hanya pengeluaran)
     const walletExpenses = {};
     state.wallets.forEach(w => walletExpenses[w.id] = 0);
 
@@ -110,11 +123,10 @@ const analytics = {
       this.doughnutChart.destroy();
     }
 
-    // Tampilkan placeholder jika data kosong
     if (data.length === 0) {
       labels.push('Belum ada data');
       data.push(1);
-      backgroundColors.push('#e2e8f0'); // slate-200
+      backgroundColors.push('#f1f5f9'); // slate-100
     }
 
     this.doughnutChart = new Chart(ctx, {
@@ -124,23 +136,24 @@ const analytics = {
         datasets: [{
           data: data,
           backgroundColor: backgroundColors,
-          borderWidth: 0
+          borderWidth: 2,
+          borderColor: '#ffffff' // white border for light theme
         }]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11, weight: '700' } } },
           tooltip: {
             callbacks: {
               label: function(context) {
-                if (data.length === 1 && data[0] === 1 && labels[0] === 'Belum ada data') return ' 0';
+                if (data.length === 1 && data[0] === 1 && labels[0] === 'Belum ada data') return ' Rp 0';
                 return ' ' + utils.formatRupiah(context.raw);
               }
             }
           }
         },
-        cutout: '70%'
+        cutout: '75%'
       }
     });
   }

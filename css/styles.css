@@ -1,3 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tab Management */
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease-in-out;
+}
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bottom Navigation Active States (Mobile) */
+.bottom-nav-btn {
+  color: #64748b; /* slate-500 */
+}
+.bottom-nav-btn.active-bnav {
+  color: #8b5cf6; /* violet-500 */
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 12px;
+}
+
+/* Sidebar Active States (Desktop) */
+.nav-link.active-nav {
+  background-color: #1e293b; /* slate-800 */
+  color: #fff;
+}
+
+/* Modal Animation */
+.animate-modal {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Safe Area for Mobile Browsers */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
 }

@@ -1,4 +1,47 @@
 const ui = {
+  // Tab Management
+  switchTab(tabId) {
+    // Sembunyikan semua tab content
+    document.querySelectorAll('.tab-content').forEach(tab => {
+      tab.classList.remove('active');
+      tab.classList.add('hidden');
+    });
+    
+    // Tampilkan tab yang dipilih
+    const targetTab = document.getElementById(`tab-${tabId}`);
+    if (targetTab) {
+      targetTab.classList.remove('hidden');
+      targetTab.classList.add('active');
+    }
+
+    // Reset Desktop Sidebar
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.remove('active-nav', 'text-slate-800', 'bg-slate-50');
+      link.classList.add('text-slate-500');
+    });
+    const activeSidebar = document.getElementById(`nav-${tabId}`);
+    if (activeSidebar) {
+      activeSidebar.classList.add('active-nav', 'text-slate-800', 'bg-slate-50');
+      activeSidebar.classList.remove('text-slate-500');
+    }
+
+    // Reset Mobile Bottom Nav
+    document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+      btn.classList.remove('active-bnav');
+      btn.classList.add('text-slate-400');
+    });
+    const activeBottomNav = document.getElementById(`bnav-${tabId}`);
+    if (activeBottomNav) {
+      activeBottomNav.classList.add('active-bnav');
+      activeBottomNav.classList.remove('text-slate-400');
+    }
+
+    // Render ulang charts jika pindah ke analitik
+    if (tabId === 'analytics') {
+      analytics.renderCharts();
+    }
+  },
+
   initFilters() {
     const monthSelect = document.getElementById('filter-month');
     const yearSelect = document.getElementById('filter-year');
@@ -19,15 +62,15 @@ const ui = {
     const btnSubmit = document.getElementById('btn-submit-tx');
 
     if (type === 'out') {
-      btnOut.className = "py-2 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm";
-      btnIn.className = "py-2 text-xs font-bold rounded-lg text-slate-500";
-      btnSubmit.className = "w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-indigo-100";
-      btnSubmit.innerText = "Simpan Pengeluaran";
+      btnOut.className = "flex-1 py-3 text-sm font-bold rounded-xl bg-white text-slate-800 shadow-sm border border-slate-200/50 transition-all";
+      btnIn.className = "flex-1 py-3 text-sm font-bold rounded-xl text-slate-500 hover:text-slate-700 transition-all";
+      btnSubmit.className = "w-full bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-rose-200 text-sm tracking-wide mt-2";
+      btnSubmit.innerHTML = "💾 Simpan Pengeluaran";
     } else {
-      btnIn.className = "py-2 text-xs font-bold rounded-lg bg-white text-emerald-600 shadow-sm";
-      btnOut.className = "py-2 text-xs font-bold rounded-lg text-slate-500";
-      btnSubmit.className = "w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-emerald-100";
-      btnSubmit.innerText = "Tambah Uang (Pemasukan)";
+      btnIn.className = "flex-1 py-3 text-sm font-bold rounded-xl bg-white text-slate-800 shadow-sm border border-slate-200/50 transition-all";
+      btnOut.className = "flex-1 py-3 text-sm font-bold rounded-xl text-slate-500 hover:text-slate-700 transition-all";
+      btnSubmit.className = "w-full bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-200 text-sm tracking-wide mt-2";
+      btnSubmit.innerHTML = "💾 Simpan Pemasukan";
     }
   },
 
@@ -48,14 +91,14 @@ const ui = {
   renderModalWalletList() {
     const modalList = document.getElementById('modal-wallet-list');
     modalList.innerHTML = state.wallets.map(w => `
-      <div class="flex justify-between items-center p-2 rounded-xl bg-slate-50 border border-slate-100">
+      <div class="flex justify-between items-center p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
         <div>
-          <p class="font-bold text-xs text-slate-700">${w.name}</p>
-          <p class="text-[10px] text-slate-400">Limit: Mgg (${utils.formatRupiah(w.maxLimit)}) | Bln (${utils.formatRupiah(w.monthlyLimit || 0)})</p>
+          <p class="font-bold text-sm text-slate-800">${w.name}</p>
+          <p class="text-[10px] text-slate-500 mt-1 font-semibold">Limit: Mgg (${utils.formatRupiah(w.maxLimit)}) | Bln (${utils.formatRupiah(w.monthlyLimit || 0)})</p>
         </div>
         <div class="flex gap-2">
-          <button type="button" onclick="app.editWallet('${w.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">Edit</button>
-          <button type="button" onclick="app.deleteWallet('${w.id}')" class="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
+          <button type="button" onclick="app.editWallet('${w.id}')" class="text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-slate-600 px-3 py-1.5 rounded-lg font-bold transition">Edit</button>
+          <button type="button" onclick="app.deleteWallet('${w.id}')" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg font-bold transition">Hapus</button>
         </div>
       </div>
     `).join('');
@@ -87,7 +130,7 @@ const ui = {
           totalNetBalance -= amount;
           if (isSelectedMonth) sumExpense += amount;
 
-          // Peringatan menggunakan waktu asli (current week/month), BUKAN berdasar filter
+          // Peringatan menggunakan waktu asli (current week/month)
           if (utils.isWithinCurrentWeek(tx.fullDate)) walletStats[tx.walletId].weeklySpent += amount;
           if (utils.isWithinCurrentMonth(tx.fullDate)) walletStats[tx.walletId].monthlySpent += amount;
         }
@@ -100,8 +143,6 @@ const ui = {
     document.getElementById('summary-income').innerText = utils.formatRupiah(sumIncome);
     document.getElementById('summary-expense').innerText = utils.formatRupiah(sumExpense);
     document.getElementById('summary-net').innerText = utils.formatRupiah(sumIncome - sumExpense);
-    const sumNetEl = document.getElementById('summary-net');
-    sumNetEl.className = `text-xs font-bold ${sumIncome - sumExpense >= 0 ? 'text-indigo-600' : 'text-rose-600'}`;
 
     // Warnings and Wallets
     const warningContainer = document.getElementById('warning-container');
@@ -122,10 +163,10 @@ const ui = {
       if (percentWeekly >= 80) {
         const isOver = percentWeekly >= 100;
         warningContainer.innerHTML += `
-          <div class="p-3 rounded-2xl border ${isOver ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'} flex items-start gap-3 shadow-sm">
-            <span class="text-base">${isOver ? '🚨' : '⚠️'}</span>
+          <div class="p-4 rounded-2xl border ${isOver ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'} flex items-start gap-3 shadow-sm">
+            <span class="text-xl">${isOver ? '🚨' : '⚠️'}</span>
             <div class="text-xs">
-              <span class="font-bold block mb-0.5">${isOver ? 'Limit Minggu Ini Terlewati!' : 'Peringatan Limit Mingguan!'}</span>
+              <span class="font-extrabold block mb-1 text-sm">${isOver ? 'Limit Minggu Ini Terlewati!' : 'Peringatan Limit Mingguan!'}</span>
               Dompet <b class="underline">${w.name}</b> minggu ini mencapai <b>${percentWeekly}%</b> (${utils.formatRupiah(stats.weeklySpent)} / ${utils.formatRupiah(maxLimit)}).
             </div>
           </div>
@@ -136,10 +177,10 @@ const ui = {
       if (percentMonthly >= 80) {
         const isOverMonthly = percentMonthly >= 100;
         warningContainer.innerHTML += `
-          <div class="p-3 rounded-2xl border ${isOverMonthly ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-orange-50 border-orange-200 text-orange-800'} flex items-start gap-3 shadow-sm">
-            <span class="text-base">📅</span>
+          <div class="p-4 rounded-2xl border ${isOverMonthly ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-orange-50 border-orange-200 text-orange-800'} flex items-start gap-3 shadow-sm">
+            <span class="text-xl">📅</span>
             <div class="text-xs">
-              <span class="font-bold block mb-0.5">${isOverMonthly ? 'Limit Bulan Ini Jebol!' : 'Peringatan Limit Bulanan!'}</span>
+              <span class="font-extrabold block mb-1 text-sm">${isOverMonthly ? 'Limit Bulan Ini Jebol!' : 'Peringatan Limit Bulanan!'}</span>
               Dompet <b class="underline">${w.name}</b> bulan ini mencapai <b>${percentMonthly}%</b> (${utils.formatRupiah(stats.monthlySpent)} / ${utils.formatRupiah(monthlyLimit)}).
             </div>
           </div>
@@ -147,39 +188,41 @@ const ui = {
       }
 
       // Render Dompet List Item
-      const colorClass = w.color || 'bg-indigo-500';
-      const progressColor = percentMonthly >= 100 ? 'bg-rose-500' : percentMonthly >= 80 ? 'bg-amber-500' : colorClass.split(' ')[0];
+      const hexColor = w.hex || '#6366f1';
+      const progressColor = percentMonthly >= 100 ? 'bg-rose-500' : percentMonthly >= 80 ? 'bg-amber-500' : 'bg-indigo-500';
 
       walletListEl.innerHTML += `
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3">
+        <div class="bg-white border border-slate-100 p-5 rounded-3xl shadow-sm hover:shadow-md hover:border-slate-200 flex flex-col justify-between space-y-4 transition duration-300 group">
           <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full ${colorClass}"></span>
-              <span class="font-bold text-slate-700 text-sm">${w.name}</span>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm" style="background-color: ${hexColor}15; color: ${hexColor}; border: 1px solid ${hexColor}30;">
+                👛
+              </div>
+              <span class="font-extrabold text-slate-800 text-sm group-hover:text-indigo-600 transition">${w.name}</span>
             </div>
-            <span class="text-[10px] font-semibold bg-slate-100 px-2 py-1 rounded-lg text-slate-600">
-              Bulan Ini: ${percentMonthly}%
+            <span class="text-[10px] font-bold bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg text-slate-500 shadow-sm">
+              ${percentMonthly}% Terpakai
             </span>
           </div>
           
           <div class="flex justify-between items-end">
             <div>
-              <p class="text-[10px] text-slate-400 uppercase tracking-wide">Sisa Uang Dompet</p>
-              <p class="text-base font-extrabold text-slate-800">${utils.formatRupiah(remaining)}</p>
+              <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Sisa Uang</p>
+              <p class="text-xl font-extrabold text-slate-800">${utils.formatRupiah(remaining)}</p>
             </div>
-            <div class="text-right text-[10px] text-slate-500 space-y-0.5">
-              <p>Keluar Mgg: <span class="font-bold text-slate-700">${utils.formatRupiah(stats.weeklySpent)}</span></p>
-              <p>Keluar Bln: <span class="font-bold text-slate-700">${utils.formatRupiah(stats.monthlySpent)}</span></p>
+            <div class="text-right text-[10px] text-slate-500 font-medium space-y-1">
+              <p class="flex justify-end gap-2"><span>Keluar Mgg:</span> <span class="font-bold text-slate-700">${utils.formatRupiah(stats.weeklySpent)}</span></p>
+              <p class="flex justify-end gap-2"><span>Keluar Bln:</span> <span class="font-bold text-slate-700">${utils.formatRupiah(stats.monthlySpent)}</span></p>
             </div>
           </div>
           
-          <div class="space-y-1">
-            <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+          <div class="space-y-2 pt-2 border-t border-slate-100/80">
+            <div class="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
               <span>Progress Bulanan</span>
               <span>Limit: ${utils.formatRupiah(monthlyLimit)}</span>
             </div>
-            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div class="${progressColor} h-1.5 rounded-full transition-all duration-300" style="width: ${Math.min(percentMonthly, 100)}%"></div>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner">
+              <div class="${progressColor} h-2.5 rounded-full transition-all duration-700 ease-out shadow-sm" style="width: ${Math.min(percentMonthly, 100)}%; background-color: ${percentMonthly < 80 ? hexColor : ''};"></div>
             </div>
           </div>
         </div>
@@ -191,10 +234,16 @@ const ui = {
 
     this.renderTransactions();
     this.renderModalWalletList();
+    
+    // Auto switch to Dashboard when initially loaded if no tab is active
+    if (!document.querySelector('.tab-content.active')) {
+      this.switchTab('dashboard');
+    }
   },
 
   renderTransactions() {
     const listEl = document.getElementById('monthly-tx-list');
+    const recentListEl = document.getElementById('recent-tx-list');
     
     // Ambil transaksi hanya pada bulan & tahun yang difilter
     const filteredTxs = state.transactions
@@ -206,30 +255,49 @@ const ui = {
       .reverse();
 
     if (filteredTxs.length === 0) {
-      listEl.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs italic bg-white rounded-xl border border-slate-100">Belum ada transaksi di bulan ini.</div>`;
+      const emptyState = `
+        <div class="flex flex-col items-center justify-center py-10 bg-white border border-slate-100 border-dashed rounded-3xl">
+          <span class="text-4xl mb-3 opacity-80">📭</span>
+          <p class="text-slate-500 text-xs font-bold">Belum ada transaksi.</p>
+        </div>
+      `;
+      if(listEl) listEl.innerHTML = emptyState;
+      if(recentListEl) recentListEl.innerHTML = emptyState;
       return;
     }
 
-    listEl.innerHTML = filteredTxs.map(tx => {
+    const txHTML = (txs) => txs.map(tx => {
       const isIncome = tx.type === 'in';
       const wallet = state.wallets.find(w => w.id === tx.walletId) || {};
+      const hexColor = wallet.hex || '#94a3b8'; // slate-400
+      
       return `
-        <div class="bg-white p-3 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="w-2 h-8 rounded-full ${wallet.color || 'bg-slate-300'}"></div>
+        <div class="bg-white border border-slate-100 p-4 rounded-2xl flex justify-between items-center shadow-sm hover:shadow-md hover:border-slate-200 transition group">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold" style="background-color: ${hexColor}15; color: ${hexColor};">
+              ${isIncome ? '↓' : '↑'}
+            </div>
             <div>
-              <p class="font-bold text-slate-700 text-xs">${tx.desc}</p>
-              <p class="text-[10px] text-slate-400">${wallet.name || '-'} • ${tx.date}</p>
+              <p class="font-extrabold text-slate-800 text-sm group-hover:text-indigo-600 transition">${tx.desc}</p>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">${wallet.name || '-'}</span>
+                <span class="text-[10px] font-semibold text-slate-400">${tx.date}</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="font-bold text-xs ${isIncome ? 'text-emerald-600' : 'text-red-500'}">
+          <div class="flex items-center gap-4">
+            <span class="font-extrabold text-sm ${isIncome ? 'text-emerald-500' : 'text-rose-500'}">
               ${isIncome ? '+' : '-'} ${utils.formatRupiah(tx.amount)}
             </span>
-            <button onclick="app.deleteTransaction(${tx.realIndex})" class="text-slate-300 hover:text-red-500 text-xs font-bold p-1 transition-colors" title="Hapus">✕</button>
+            <button onclick="app.deleteTransaction(${tx.realIndex})" class="w-8 h-8 rounded-lg bg-slate-50 hover:bg-rose-50 border border-transparent hover:border-rose-100 text-slate-400 hover:text-rose-500 flex items-center justify-center transition" title="Hapus">
+              ✕
+            </button>
           </div>
         </div>
       `;
     }).join('');
+
+    if(listEl) listEl.innerHTML = txHTML(filteredTxs);
+    if(recentListEl) recentListEl.innerHTML = txHTML(filteredTxs.slice(0, 3)); // Ambil 3 teratas
   }
 };
