@@ -1,6 +1,7 @@
 const ui = {
   isNotificationOpen: false,
   selectedTxWalletTab: 'all',
+  selectedBankFilterTab: 'all',
 
   init() {
     document.addEventListener('click', (e) => {
@@ -76,12 +77,29 @@ const ui = {
       activeBottomNav.classList.add('active-bnav');
     }
 
+    if (tabId === 'banks') {
+      this.renderBanks();
+      this.renderBankTransactions();
+    }
+
     if (tabId === 'analytics') {
       analytics.renderCharts();
     }
 
     if (tabId === 'transactions') {
       this.renderTransactions();
+    }
+
+    const headerTitle = document.querySelector('header h1');
+    if (headerTitle) {
+      const titles = {
+        dashboard: 'Dashboard Finansial',
+        banks: 'Rekening Bank Fisik (Kas Nyata)',
+        analytics: 'Laporan Analitik',
+        transactions: 'Buku Mutasi Transaksi',
+        add: 'Pencatatan Transaksi Baru'
+      };
+      if (titles[tabId]) headerTitle.innerText = titles[tabId];
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -332,6 +350,53 @@ const ui = {
   renderBanks() {
     const bankListEl = document.getElementById('bank-list');
     const bankStats = this.getBankStats();
+    let totalBankCash = 0;
+    Object.values(bankStats).forEach(b => totalBankCash += Number(b.current || 0));
+
+    // Update Overview pada Tab Bank
+    const tabTotal = document.getElementById('banks-tab-total');
+    if (tabTotal) tabTotal.innerText = utils.formatRupiah(totalBankCash);
+
+    const tabCount = document.getElementById('banks-tab-count');
+    if (tabCount) tabCount.innerText = `${state.banks.length} Rekening`;
+
+    // Sinkronisasi status di tab bank
+    const tabSync = document.getElementById('banks-tab-sync');
+    if (tabSync) {
+      let totalWalletsCash = 0;
+      state.wallets.forEach(w => {
+        let wSpent = 0, wIncome = 0;
+        state.transactions.forEach(tx => {
+          if (tx.walletId === w.id) {
+            if (tx.type === 'in') wIncome += Number(tx.amount || 0);
+            else if (tx.type === 'out') wSpent += Number(tx.amount || 0);
+          }
+        });
+        totalWalletsCash += (Number(w.budget || 0) + wIncome - wSpent);
+      });
+      const diff = Math.abs(totalBankCash - totalWalletsCash);
+      if (diff === 0) {
+        tabSync.innerHTML = `
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Klop 100% dengan Dompet
+          </span>
+        `;
+      } else {
+        tabSync.innerHTML = `
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Selisih ${utils.formatRupiah(diff)}
+          </span>
+        `;
+      }
+    }
+
+    // Update text shortcut di dashboard
+    const quickBarText = document.getElementById('quick-bank-bar-text');
+    if (quickBarText) {
+      quickBarText.innerText = state.banks.map(b => `${b.name} (${utils.formatRupiah(bankStats[b.id]?.current || 0)})`).join(' • ') || 'Akses manajemen kas dan transfer di Bar Bank.';
+    }
 
     if (bankListEl) {
       bankListEl.innerHTML = state.banks.map(b => {
@@ -412,6 +477,170 @@ const ui = {
       }).join('');
       if (cur && state.banks.some(b => b.id === cur)) transferTo.value = cur;
     }
+
+    this.renderBankTransactions();
+  },
+
+  setBankFilter(bankId) {
+    this.selectedBankFilterTab = bankId;
+    this.renderBankTransactions();
+  },
+
+  renderBankTransactions() {
+    const filterTabsEl = document.getElementById('bank-filter-tabs');
+    const txListEl = document.getElementById('bank-tx-list');
+    if (!txListEl) return;
+
+    // Filter mutasi bulan dan tahun terpilih yang melibatkan rekening bank
+    const monthTxs = state.transactions
+      .map((tx, idx) => ({ ...tx, realIndex: idx }))
+      .filter(tx => {
+        const d = new Date(tx.fullDate);
+        return d.getMonth() === state.filterMonth && d.getFullYear() === state.filterYear;
+      })
+      .filter(tx => tx.type === 'transfer' || tx.bankId || tx.fromBankId || tx.toBankId)
+      .sort((a, b) => {
+        const timeB = b.fullDate ? new Date(b.fullDate).getTime() : 0;
+        const timeA = a.fullDate ? new Date(a.fullDate).getTime() : 0;
+        return (timeB - timeA) || (b.realIndex - a.realIndex);
+      });
+
+    // Render tab filter bank
+    if (filterTabsEl) {
+      const activeAll = this.selectedBankFilterTab === 'all'
+        ? 'bg-sky-600 text-white shadow-xs font-semibold'
+        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80 font-medium';
+
+      let tabsHTML = `
+        <button type="button" onclick="ui.setBankFilter('all')" class="px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 ${activeAll}">
+          <span>Semua Bank</span>
+          <span class="text-[10px] px-1.5 py-0.2 rounded-full ${this.selectedBankFilterTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 font-mono'}">${monthTxs.length}</span>
+        </button>
+      `;
+
+      state.banks.forEach(b => {
+        const count = monthTxs.filter(tx => tx.bankId === b.id || tx.fromBankId === b.id || tx.toBankId === b.id).length;
+        const isActive = this.selectedBankFilterTab === b.id;
+        const btnClass = isActive
+          ? 'bg-sky-600 text-white shadow-xs font-semibold'
+          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80 font-medium';
+
+        tabsHTML += `
+          <button type="button" onclick="ui.setBankFilter('${b.id}')" class="px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 ${btnClass}">
+            <span class="w-2 h-2 rounded-full" style="background-color: ${isActive ? '#ffffff' : b.hex || '#0284c7'};"></span>
+            <span>${b.name}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 font-mono'}">${count}</span>
+          </button>
+        `;
+      });
+
+      filterTabsEl.innerHTML = tabsHTML;
+    }
+
+    const targetTxs = this.selectedBankFilterTab === 'all'
+      ? monthTxs
+      : monthTxs.filter(tx => tx.bankId === this.selectedBankFilterTab || tx.fromBankId === this.selectedBankFilterTab || tx.toBankId === this.selectedBankFilterTab);
+
+    if (targetTxs.length === 0) {
+      txListEl.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-10 px-4 bg-white border border-slate-200/80 rounded-2xl text-center">
+          <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-slate-600">Belum ada aktivitas mutasi kas pada rekening bank ini</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Catatan kas masuk, keluar, atau transfer antar bank akan tercatat di sini.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const rowsHTML = targetTxs.map(tx => {
+      const isTransfer = tx.type === 'transfer';
+      const isIncome = tx.type === 'in';
+      let sign = '-';
+      let colorClass = 'text-slate-900';
+      let bankLabel = '';
+
+      if (isTransfer) {
+        const fromB = state.banks.find(b => b.id === tx.fromBankId);
+        const toB = state.banks.find(b => b.id === tx.toBankId);
+        if (this.selectedBankFilterTab === tx.fromBankId) {
+          sign = '-';
+          colorClass = 'text-rose-600';
+          bankLabel = `Transfer Keluar ke ${toB?.name || 'Bank'}`;
+        } else if (this.selectedBankFilterTab === tx.toBankId) {
+          sign = '+';
+          colorClass = 'text-emerald-600';
+          bankLabel = `Transfer Masuk dari ${fromB?.name || 'Bank'}`;
+        } else {
+          sign = '↔';
+          colorClass = 'text-sky-700';
+          bankLabel = `${fromB?.name || 'Bank'} ➔ ${toB?.name || 'Bank'}`;
+        }
+      } else if (isIncome) {
+        sign = '+';
+        colorClass = 'text-emerald-600';
+        const b = state.banks.find(bank => bank.id === tx.bankId);
+        bankLabel = b ? b.name : 'Bank';
+      } else {
+        sign = '-';
+        colorClass = 'text-slate-900';
+        const b = state.banks.find(bank => bank.id === tx.bankId);
+        bankLabel = b ? b.name : 'Bank';
+      }
+
+      const dotClass = isTransfer ? 'bg-sky-500' : (isIncome ? 'bg-emerald-500' : 'bg-rose-500');
+
+      return `
+        <tr class="hover:bg-sky-50/30 transition-colors group">
+          <td class="py-2.5 px-3 sm:px-4 text-slate-500 font-medium whitespace-nowrap text-[11px] sm:text-xs">
+            ${tx.date}
+          </td>
+          <td class="py-2.5 px-2 sm:px-4 text-slate-900 font-semibold text-xs min-w-0">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotClass}"></span>
+              <span class="truncate block max-w-[130px] sm:max-w-xs" title="${tx.desc}">${tx.desc}</span>
+            </div>
+          </td>
+          <td class="py-2.5 px-2 sm:px-3 whitespace-nowrap text-[10px] sm:text-xs">
+            <span class="inline-flex items-center gap-1 font-semibold text-slate-700 bg-slate-100 border border-slate-200/70 px-2 py-0.5 rounded-md">
+              <svg class="w-3 h-3 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              <span>${bankLabel}</span>
+            </span>
+          </td>
+          <td class="py-2.5 px-3 sm:px-4 text-right whitespace-nowrap font-mono text-xs">
+            <div class="inline-flex items-center gap-1.5 justify-end">
+              <span class="font-bold ${colorClass}">
+                ${sign} ${utils.formatRupiah(tx.amount)}
+              </span>
+              <button onclick="app.deleteTransaction(${tx.realIndex})" class="w-5 h-5 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-600 inline-flex items-center justify-center transition opacity-60 group-hover:opacity-100 cursor-pointer" title="Hapus Transaksi">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    txListEl.innerHTML = `
+      <div class="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50/70 text-slate-500 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-100">
+                <th class="py-2.5 px-3 sm:px-4 w-20 sm:w-24 whitespace-nowrap">Tanggal</th>
+                <th class="py-2.5 px-2 sm:px-4">Keterangan</th>
+                <th class="py-2.5 px-2 sm:px-3 whitespace-nowrap">Rekening Bank</th>
+                <th class="py-2.5 px-3 sm:px-4 text-right whitespace-nowrap">Nominal</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${rowsHTML}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   },
 
   renderModalBankList() {
