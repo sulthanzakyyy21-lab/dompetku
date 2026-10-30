@@ -905,11 +905,18 @@ const ui = {
   },
 
   renderMain() {
+    // 1. Hitung Total Kas Nyata dari Seluruh Rekening Bank (Total Saldo Likuid)
+    const bankStats = this.getBankStats();
+    let totalBankCash = 0;
+    Object.values(bankStats).forEach(b => totalBankCash += Number(b.current || 0));
+
+    // Total Saldo Likuid adalah total dari saldo bank
+    const totalSaldoEl = document.getElementById('total-saldo');
+    if (totalSaldoEl) totalSaldoEl.innerText = utils.formatRupiah(totalBankCash);
+
+    // 2. Hitung Mutasi Dompet & Ringkasan Finansial Periode Terpilih
     const walletStats = {};
     state.wallets.forEach(w => walletStats[w.id] = { spent: 0, weeklySpent: 0, monthlySpent: 0, income: 0 });
-
-    let totalNetBalance = 0;
-    state.wallets.forEach(w => totalNetBalance += Number(w.budget || 0));
 
     let sumIncome = 0;
     let sumExpense = 0;
@@ -923,11 +930,9 @@ const ui = {
       if (walletStats[tx.walletId]) {
         if (tx.type === 'in') {
           walletStats[tx.walletId].income += amount;
-          totalNetBalance += amount;
           if (isSelectedMonth) sumIncome += amount;
         } else if (tx.type === 'out') {
           walletStats[tx.walletId].spent += amount;
-          totalNetBalance -= amount;
           if (isSelectedMonth) sumExpense += amount;
 
           if (utils.isWithinCurrentWeek(tx.fullDate)) walletStats[tx.walletId].weeklySpent += amount;
@@ -935,9 +940,6 @@ const ui = {
         }
       }
     });
-
-    const totalSaldoEl = document.getElementById('total-saldo');
-    if (totalSaldoEl) totalSaldoEl.innerText = utils.formatRupiah(totalNetBalance);
     
     const incEl = document.getElementById('summary-income');
     const expEl = document.getElementById('summary-expense');
@@ -946,11 +948,7 @@ const ui = {
     if (expEl) expEl.innerText = utils.formatRupiah(sumExpense);
     if (netEl) netEl.innerText = utils.formatRupiah(sumIncome - sumExpense);
 
-    // Hitung Sinkronisasi Kas Bank Nyata vs Dompet
-    const bankStats = this.getBankStats();
-    let totalBankCash = 0;
-    Object.values(bankStats).forEach(b => totalBankCash += Number(b.current || 0));
-
+    // 3. Hitung Total Saldo Dompet & Validasi Sinkronisasi Kas Bank vs Dompet
     let totalWalletsCash = 0;
     state.wallets.forEach(w => {
       const stats = walletStats[w.id] || { spent: 0, income: 0 };
