@@ -21,46 +21,105 @@ const app = {
 
   addTransaction(e) {
     e.preventDefault();
-    const walletId = document.getElementById('tx-wallet').value;
     const amountVal = document.getElementById('tx-amount').value;
-    const catSelect = document.getElementById('tx-category-select');
-    const categoryVal = catSelect ? catSelect.value : '';
-    const descInput = document.getElementById('tx-desc');
-    const descVal = descInput ? descInput.value.trim() : '';
-
-    if (!walletId) {
-      alert('Silakan pilih atau buat dompet terlebih dahulu.');
-      return;
-    }
-
     const amount = utils.parseNumber(amountVal);
     if (isNaN(amount) || amount <= 0) {
       alert('Masukkan nominal transaksi yang valid.');
       return;
     }
 
-    const finalCategory = categoryVal || descVal || 'Lainnya';
-    const finalDesc = descVal || categoryVal || (state.currentTxType === 'in' ? 'Pemasukan' : 'Pengeluaran');
-
+    const descInput = document.getElementById('tx-desc');
+    const descVal = descInput ? descInput.value.trim() : '';
     const now = new Date();
-    const newTx = {
-      walletId,
-      amount,
-      category: finalCategory,
-      desc: finalDesc,
-      type: state.currentTxType,
-      date: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-      fullDate: now.toISOString()
-    };
+    const dateFormatted = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    const fullDate = now.toISOString();
 
-    state.transactions.push(newTx);
+    if (state.currentTxType === 'out') {
+      const walletId = document.getElementById('tx-wallet')?.value;
+      const bankId = document.getElementById('tx-bank-out')?.value;
+
+      if (!walletId) {
+        alert('Silakan pilih dompet / pos anggaran terlebih dahulu.');
+        return;
+      }
+      if (!bankId) {
+        alert('Silakan pilih bank sumber dana terlebih dahulu.');
+        return;
+      }
+
+      // Validasi saldo bank saat ini
+      const bankStats = ui.getBankStats();
+      const currentBankBal = bankStats[bankId] ? bankStats[bankId].current : 0;
+      const bankObj = state.banks.find(b => b.id === bankId);
+      const bankName = bankObj ? bankObj.name : 'Bank';
+
+      if (amount > currentBankBal) {
+        if (!confirm(`Peringatan: Saldo ${bankName} saat ini (${utils.formatRupiah(currentBankBal)}) tidak mencukupi untuk pengeluaran ${utils.formatRupiah(amount)}.\n\nTetap lanjutkan transaksi?`)) {
+          return;
+        }
+      }
+
+      const catSelect = document.getElementById('tx-category-select');
+      const categoryVal = catSelect ? catSelect.value : '';
+      const finalCategory = categoryVal || descVal || 'Lainnya';
+      const finalDesc = descVal || categoryVal || 'Pengeluaran';
+
+      const newTx = {
+        walletId,
+        bankId,
+        amount,
+        category: finalCategory,
+        desc: finalDesc,
+        type: 'out',
+        date: dateFormatted,
+        fullDate
+      };
+
+      state.transactions.push(newTx);
+    } else {
+      // Pemasukan
+      const bankId = document.getElementById('tx-bank-in')?.value;
+      if (!bankId) {
+        alert('Silakan pilih rekening bank penerima pemasukan.');
+        return;
+      }
+
+      const allocations = ui.getIncomeAllocations();
+      if (!allocations || allocations.length === 0) {
+        alert('Silakan tentukan minimal 1 dompet untuk pembagian pemasukan ini.');
+        return;
+      }
+
+      const totalAllocated = allocations.reduce((sum, item) => sum + item.amount, 0);
+      if (totalAllocated !== amount) {
+        alert(`Total alokasi pembagian ke dompet (${utils.formatRupiah(totalAllocated)}) harus sama persis dengan total nominal pemasukan (${utils.formatRupiah(amount)}).\n\nSisa selisih: ${utils.formatRupiah(amount - totalAllocated)}`);
+        return;
+      }
+
+      const finalDesc = descVal || 'Pemasukan';
+
+      allocations.forEach(alloc => {
+        const allocTx = {
+          walletId: alloc.walletId,
+          bankId,
+          amount: alloc.amount,
+          category: alloc.walletName,
+          desc: finalDesc + (allocations.length > 1 ? ` (${alloc.walletName})` : ''),
+          type: 'in',
+          date: dateFormatted,
+          fullDate
+        };
+        state.transactions.push(allocTx);
+      });
+    }
+
     state.saveData();
 
     document.getElementById('tx-amount').value = '';
     if (descInput) descInput.value = '';
+    const catSelect = document.getElementById('tx-category-select');
     if (catSelect) catSelect.value = '';
 
-    ui.closeModal('modal-transaction');
     this.renderAll();
     ui.switchTab('dashboard');
   },
@@ -115,6 +174,18 @@ const app = {
 
     if (!name) {
       alert('Nama akun/dompet tidak boleh kosong.');
+      return;
+    }
+
+    // Validasi saldo dompet tidak boleh melebihi total kas bank
+    const totalBankBalance = state.banks.reduce((sum, b) => sum + Number(b.balance || 0), 0);
+    const otherWalletsTotal = state.wallets
+      .filter(w => w.id !== editId)
+      .reduce((sum, w) => sum + Number(w.budget || 0), 0);
+
+    const maxAllowed = Math.max(0, totalBankBalance - otherWalletsTotal);
+    if (budget > maxAllowed) {
+      alert(`Alokasi saldo dompet melebihi total kas bank!\n\nTotal Saldo Bank: ${utils.formatRupiah(totalBankBalance)}\nTeralokasi ke dompet lain: ${utils.formatRupiah(otherWalletsTotal)}\nMaksimal yang dapat dialokasikan untuk dompet ini: ${utils.formatRupiah(maxAllowed)}`);
       return;
     }
 
@@ -179,8 +250,126 @@ const app = {
     }
   },
 
+  saveBank(e) {
+    e.preventDefault();
+    const editId = document.getElementById('bank-edit-id')?.value;
+    const name = document.getElementById('bank-name')?.value.trim();
+    const balance = utils.parseNumber(document.getElementById('bank-balance')?.value) || 0;
+
+    if (!name) {
+      alert('Nama rekening bank tidak boleh kosong.');
+      return;
+    }
+
+    if (editId) {
+      const bank = state.banks.find(b => b.id === editId);
+      if (bank) {
+        bank.name = name;
+        bank.balance = balance;
+      }
+    } else {
+      const selectedColorObj = state.colors[state.banks.length % state.colors.length];
+      const newBank = {
+        id: 'b_' + Date.now(),
+        name,
+        balance,
+        color: selectedColorObj.color,
+        hex: selectedColorObj.hex
+      };
+      state.banks.push(newBank);
+    }
+
+    state.saveData();
+    ui.resetBankForm();
+    ui.toggleModalBank(false);
+    this.renderAll();
+  },
+
+  editBank(id) {
+    const bank = state.banks.find(b => b.id === id);
+    if (bank) {
+      ui.setBankEditMode(bank);
+      ui.toggleModalBank(true);
+    }
+  },
+
+  deleteBank(id) {
+    if (state.banks.length <= 1) {
+      alert('Minimal harus tersedia 1 rekening bank aktif dalam sistem.');
+      return;
+    }
+    if (confirm('Konfirmasi: Hapus rekening bank ini? Transaksi dan transfer terkait bank ini akan ikut disesuaikan.')) {
+      state.banks = state.banks.filter(b => b.id !== id);
+      state.transactions = state.transactions.filter(tx => tx.bankId !== id && tx.fromBankId !== id && tx.toBankId !== id);
+      state.saveData();
+      ui.resetBankForm();
+      this.renderAll();
+    }
+  },
+
+  transferBetweenBanks(e) {
+    e.preventDefault();
+    const fromId = document.getElementById('transfer-from-bank')?.value;
+    const toId = document.getElementById('transfer-to-bank')?.value;
+    const amountVal = document.getElementById('transfer-amount')?.value;
+    const note = document.getElementById('transfer-note')?.value.trim() || 'Transfer Antar Bank';
+
+    if (!fromId || !toId) {
+      alert('Pilih bank pengirim dan bank penerima.');
+      return;
+    }
+    if (fromId === toId) {
+      alert('Bank pengirim dan bank penerima tidak boleh sama.');
+      return;
+    }
+
+    const amount = utils.parseNumber(amountVal);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Masukkan nominal transfer yang valid.');
+      return;
+    }
+
+    const bankStats = ui.getBankStats();
+    const currentFromBal = bankStats[fromId] ? bankStats[fromId].current : 0;
+    const fromBankObj = state.banks.find(b => b.id === fromId);
+    const toBankObj = state.banks.find(b => b.id === toId);
+
+    if (amount > currentFromBal) {
+      alert(`Saldo ${fromBankObj?.name || 'Bank'} (${utils.formatRupiah(currentFromBal)}) tidak mencukupi untuk transfer sebesar ${utils.formatRupiah(amount)}.`);
+      return;
+    }
+
+    const now = new Date();
+    const transferTx = {
+      type: 'transfer',
+      fromBankId: fromId,
+      toBankId: toId,
+      amount,
+      desc: `${note} (${fromBankObj?.name} ➔ ${toBankObj?.name})`,
+      category: 'Transfer Bank',
+      date: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      fullDate: now.toISOString()
+    };
+
+    state.transactions.push(transferTx);
+    state.saveData();
+
+    ui.toggleModalBankTransfer(false);
+    document.getElementById('transfer-amount').value = '';
+    if (document.getElementById('transfer-note')) document.getElementById('transfer-note').value = '';
+
+    this.renderAll();
+    alert(`Sukses transfer ${utils.formatRupiah(amount)} dari ${fromBankObj?.name} ke ${toBankObj?.name}.`);
+  },
+
   exportData() {
-    const backupData = { wallets: state.wallets, categories: state.categories, transactions: state.transactions, exportDate: new Date().toISOString() };
+    const backupData = {
+      banks: state.banks,
+      wallets: state.wallets,
+      categories: state.categories,
+      transactions: state.transactions,
+      exportDate: new Date().toISOString()
+    };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
@@ -199,6 +388,9 @@ const app = {
       try {
         const parsed = JSON.parse(e.target.result);
         if (parsed.wallets && Array.isArray(parsed.wallets) && parsed.transactions && Array.isArray(parsed.transactions)) {
+          if (parsed.banks && Array.isArray(parsed.banks)) {
+            state.banks = parsed.banks;
+          }
           state.wallets = parsed.wallets;
           if (parsed.categories && Array.isArray(parsed.categories)) {
             state.categories = parsed.categories;
