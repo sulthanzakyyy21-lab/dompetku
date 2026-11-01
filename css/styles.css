@@ -62,43 +62,54 @@ body {
   }
 }
 
-/* Sidebar Active States with 2026 Gradient Glow */
+/* Sidebar Nav Links - Clean Typography with Gradient Active Container */
 .nav-link {
-  color: #64748b;
+  color: #475569;
   font-weight: 500;
   border-radius: 0.75rem;
   border: 1px solid transparent;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.nav-link svg {
+  color: #64748b;
+  transition: color 0.18s ease;
+}
 .nav-link:hover {
-  color: #075985;
-  background-color: rgba(103, 243, 206, 0.08);
-  border-color: rgba(72, 153, 234, 0.15);
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+.nav-link:hover svg {
+  color: #0f172a;
 }
 .nav-link.active-nav {
-  color: #0c4a6e;
-  background: linear-gradient(90deg, rgba(72, 153, 234, 0.12) 0%, rgba(103, 243, 206, 0.18) 100%);
-  font-weight: 600;
-  border-color: rgba(103, 243, 206, 0.35);
-  border-left: 3.5px solid #4899EA;
-  box-shadow: 0 1px 4px rgba(72, 153, 234, 0.08);
+  color: #042035 !important;
+  background: linear-gradient(135deg, #4899EA 0%, #67F3CE 100%) !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: 0 4px 14px -2px rgba(72, 153, 234, 0.35);
 }
 .nav-link.active-nav svg {
-  color: #0284c7;
+  color: #042035 !important;
 }
 
-/* Mobile Bottom Navigation Active States */
+/* Mobile Bottom Navigation - Active Container Gradient */
 .bottom-nav-btn {
   color: #64748b;
   transition: all 0.2s ease;
 }
+.bottom-nav-btn svg {
+  color: #64748b;
+  transition: color 0.18s ease;
+}
 .bottom-nav-btn.active-bnav {
-  color: #0369a1;
-  background: linear-gradient(135deg, rgba(72, 153, 234, 0.15) 0%, rgba(103, 243, 206, 0.22) 100%);
-  border-radius: 14px;
+  color: #042035 !important;
+  background: linear-gradient(135deg, #4899EA 0%, #67F3CE 100%) !important;
+  border-radius: 12px;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px -1px rgba(72, 153, 234, 0.35);
 }
 .bottom-nav-btn.active-bnav svg {
-  color: #0284c7;
+  color: #042035 !important;
 }
 
 /* Executive Metric Card - Styled with Luxury #4899EA & #67F3CE Glow */
@@ -127,11 +138,6 @@ body {
 }
 .bg-brand-gradient-reverse {
   background: linear-gradient(135deg, #67F3CE 0%, #4899EA 100%) !important;
-}
-.text-brand-gradient {
-  background: linear-gradient(135deg, #4899EA 0%, #67F3CE 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 .border-brand-gradient {
   border-color: #67F3CE !important;
