@@ -488,8 +488,12 @@ const app = {
 
     // 2. Tipe Transaksi
     let type = 'out';
-    const incomeKeywords = ['dana masuk', 'transfer masuk', 'menerima transfer', 'uang masuk', 'kredit', 'top up masuk', 'berhasil menerima', 'rekening anda dikredit'];
-    if (incomeKeywords.some(k => lower.includes(k)) || /\bc:\s*[\d\.,]+/i.test(fullContent)) {
+    const incomeKeywords = [
+      'dana masuk', 'transfer masuk', 'menerima transfer', 'uang masuk', 
+      'kredit', 'top up masuk', 'berhasil menerima', 'rekening anda dikredit',
+      'transfer dari', 'setoran', 'incoming transfer', 'terima dana', 'terima transfer'
+    ];
+    if (incomeKeywords.some(k => lower.includes(k)) || /\bc:\s*[\d\.,]+/i.test(fullContent) || /\bcr\b/i.test(fullContent)) {
       type = 'in';
     }
 
