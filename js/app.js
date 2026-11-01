@@ -579,8 +579,20 @@ const app = {
         item.bankName.toLowerCase().includes(b.name.toLowerCase())
       );
     }
-    if (!matchedBank && state.banks.length > 0) {
-      matchedBank = state.banks[0];
+    if (!matchedBank) {
+      // Jika bank (seperti BRI/BNI) belum ada di daftar, tambahkan otomatis
+      if (item.bankId && item.bankName) {
+        matchedBank = {
+          id: item.bankId.toLowerCase(),
+          name: item.bankName,
+          balance: 0,
+          color: 'bg-blue-600',
+          hex: '#0284c7'
+        };
+        state.banks.push(matchedBank);
+      } else if (state.banks.length > 0) {
+        matchedBank = state.banks[0];
+      }
     }
 
     // 2. Cocokkan dompet / pos anggaran
