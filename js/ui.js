@@ -52,6 +52,47 @@ const ui = {
 
   currentTab: 'dashboard',
 
+  // Animasi Count-Up Angka Finansial Interaktif & Super Smooth
+  animateNumber(el, targetValue, duration = 950) {
+    if (!el) return;
+    targetValue = Number(targetValue) || 0;
+
+    if (el._animationFrameId) {
+      cancelAnimationFrame(el._animationFrameId);
+    }
+
+    const startValue = typeof el._currentValue === 'number' ? el._currentValue : 0;
+    const diff = targetValue - startValue;
+
+    if (diff === 0 && el._hasAnimated) {
+      el.innerText = utils.formatRupiah(targetValue);
+      return;
+    }
+
+    el._hasAnimated = true;
+    const startTime = performance.now();
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(progress);
+
+      const current = Math.round(startValue + diff * eased);
+      el.innerText = (current < 0 ? '-' : '') + utils.formatRupiah(Math.abs(current));
+
+      if (progress < 1) {
+        el._animationFrameId = requestAnimationFrame(step);
+      } else {
+        el._currentValue = targetValue;
+        el.innerText = (targetValue < 0 ? '-' : '') + utils.formatRupiah(Math.abs(targetValue));
+        delete el._animationFrameId;
+      }
+    };
+
+    el._animationFrameId = requestAnimationFrame(step);
+  },
+
   switchTab(tabId) {
     this.currentTab = tabId;
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -62,7 +103,21 @@ const ui = {
     const targetTab = document.getElementById(`tab-${tabId}`);
     if (targetTab) {
       targetTab.classList.remove('hidden');
+      // Trigger reflow untuk me-restart animasi transisi smooth/lazy
+      void targetTab.offsetWidth;
       targetTab.classList.add('active');
+    }
+
+    if (tabId === 'dashboard') {
+      const totalSaldoEl = document.getElementById('total-saldo');
+      if (totalSaldoEl) totalSaldoEl._currentValue = 0;
+      const incEl = document.getElementById('summary-income');
+      if (incEl) incEl._currentValue = 0;
+      const expEl = document.getElementById('summary-expense');
+      if (expEl) expEl._currentValue = 0;
+      const netEl = document.getElementById('summary-net');
+      if (netEl) netEl._currentValue = 0;
+      this.renderMain();
     }
 
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -1298,9 +1353,9 @@ const ui = {
     let totalBankCash = 0;
     Object.values(bankStats).forEach(b => totalBankCash += Number(b.current || 0));
 
-    // Total Saldo Likuid adalah total dari saldo bank
+    // Total Saldo Likuid adalah total dari saldo bank (Count-Up Interaktif dari 0)
     const totalSaldoEl = document.getElementById('total-saldo');
-    if (totalSaldoEl) totalSaldoEl.innerText = utils.formatRupiah(totalBankCash);
+    if (totalSaldoEl) this.animateNumber(totalSaldoEl, totalBankCash, 1100);
 
     // 2. Hitung Mutasi Dompet & Ringkasan Finansial Periode Terpilih
     const walletStats = {};
@@ -1333,9 +1388,9 @@ const ui = {
     const incEl = document.getElementById('summary-income');
     const expEl = document.getElementById('summary-expense');
     const netEl = document.getElementById('summary-net');
-    if (incEl) incEl.innerText = utils.formatRupiah(sumIncome);
-    if (expEl) expEl.innerText = utils.formatRupiah(sumExpense);
-    if (netEl) netEl.innerText = utils.formatRupiah(sumIncome - sumExpense);
+    if (incEl) this.animateNumber(incEl, sumIncome, 950);
+    if (expEl) this.animateNumber(expEl, sumExpense, 950);
+    if (netEl) this.animateNumber(netEl, sumIncome - sumExpense, 1000);
 
     // 3. Hitung Total Saldo Dompet & Validasi Sinkronisasi Kas Bank vs Dompet
     let totalWalletsCash = 0;

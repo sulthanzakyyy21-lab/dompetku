@@ -262,7 +262,11 @@ const analytics = {
     const totalSpentEl = document.getElementById('analytics-total-spent');
 
     if (totalSpentEl) {
-      totalSpentEl.textContent = utils.formatRupiah(totalExpense);
+      if (typeof ui !== 'undefined' && ui.animateNumber) {
+        ui.animateNumber(totalSpentEl, totalExpense, 900);
+      } else {
+        totalSpentEl.textContent = utils.formatRupiah(totalExpense);
+      }
     }
 
     if (!rankingEl) return;
