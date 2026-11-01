@@ -437,6 +437,34 @@ const app = {
     }
   },
 
+  pasteAndRecordNotification() {
+    const processText = (text) => {
+      text = (text || '').trim();
+      if (!text) {
+        alert('Teks dari clipboard kosong. Salin teks notifikasi email Gmail terlebih dahulu.');
+        return;
+      }
+      const parsed = this.parseBankNotification(text);
+      if (parsed && parsed.amount > 0) {
+        this.processTransactionRecord(parsed);
+      } else {
+        alert('Tidak ditemukan nominal transaksi pada teks yang ditempel:\n\n"' + text.slice(0, 80) + '..."\n\nPastikan menyalin pesan yang berisi nominal Rp.');
+      }
+    };
+
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText()
+        .then(text => processText(text))
+        .catch(() => {
+          const manual = prompt('Tempel (Paste) teks notifikasi Gmail atau m-banking di sini:');
+          if (manual) processText(manual);
+        });
+    } else {
+      const manual = prompt('Tempel (Paste) teks notifikasi Gmail atau m-banking di sini:');
+      if (manual) processText(manual);
+    }
+  },
+
   parseBankNotification(rawText, rawTitle = '') {
     const fullContent = (rawTitle + " " + rawText).trim();
     const lower = fullContent.toLowerCase();

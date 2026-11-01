@@ -494,7 +494,7 @@
 
               <div>
                 <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Tipe Transaksi</label>
-                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-3">
                   <button type="button" id="btn-type-out" onclick="ui.setTxType('out')" 
                     class="py-2.5 text-xs font-semibold rounded-lg bg-white text-rose-700 shadow-sm border border-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98">
                     <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -506,6 +506,13 @@
                     <span>Pemasukan</span>
                   </button>
                 </div>
+
+                <!-- Tombol Pintas Paste Notifikasi Gmail / Bank -->
+                <button type="button" onclick="app.pasteAndRecordNotification()" 
+                  class="w-full text-xs font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-300/80 px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-98">
+                  <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <span>📋 Tempel dari Notifikasi Gmail / Bank (Auto-Catat)</span>
+                </button>
               </div>
 
               <form id="tx-form" onsubmit="app.addTransaction(event)" class="space-y-4">
