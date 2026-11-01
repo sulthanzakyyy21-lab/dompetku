@@ -424,13 +424,26 @@ const app = {
       const notifText = urlParams.get('notif') || urlParams.get('text');
       if (!notifText) return;
 
-      const parsed = this.parseBankNotification(decodeURIComponent(notifText));
+      let rawText = notifText;
+      try {
+        rawText = decodeURIComponent(notifText);
+      } catch (e) {
+        rawText = notifText;
+      }
+
+      const parsed = this.parseBankNotification(rawText);
       if (parsed && parsed.amount > 0) {
         this.processTransactionRecord(parsed);
+
+        // Munculkan popup konfirmasi agar di HP langsung terlihat jelas
+        const symbol = parsed.type === 'in' ? '+' : '-';
+        alert(`⚡ Transaksi Otomatis Berhasil Dicatat!\n\nRekening: ${parsed.bankName}\nNominal: ${symbol}${utils.formatRupiah(parsed.amount)}\nKeterangan: ${parsed.desc}\nTipe: ${parsed.type === 'in' ? 'Pemasukan' : 'Pengeluaran'}`);
 
         // Bersihkan parameter query dari URL address bar agar rapi
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
+      } else {
+        alert('Format notifikasi belum terdeteksi. Pastikan terdapat nominal nominal angka Rp pada teks:\n\n"' + rawText + '"');
       }
     } catch (err) {
       console.warn('Error processing URL notification:', err);
