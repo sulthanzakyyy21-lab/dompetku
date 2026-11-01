@@ -11,6 +11,7 @@ const app = {
       snow.init();
     }
     this.renderAll();
+    this.handleUrlNotification();
     this.initWebhook();
   },
 
@@ -416,18 +417,214 @@ const app = {
     event.target.value = '';
   },
 
-  // --- Otomasi Webhook & Sinkronisasi Notifikasi Bank ---
+  // --- Otomasi Notifikasi & Sinkronisasi (Mendukung PHP Webhook & Static GitHub Pages) ---
+  handleUrlNotification() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const notifText = urlParams.get('notif') || urlParams.get('text');
+      if (!notifText) return;
+
+      const parsed = this.parseBankNotification(decodeURIComponent(notifText));
+      if (parsed && parsed.amount > 0) {
+        this.processTransactionRecord(parsed);
+
+        // Bersihkan parameter query dari URL address bar agar rapi
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (err) {
+      console.warn('Error processing URL notification:', err);
+    }
+  },
+
+  parseBankNotification(rawText, rawTitle = '') {
+    const fullContent = (rawTitle + " " + rawText).trim();
+    const lower = fullContent.toLowerCase();
+
+    // 1. Deteksi Bank
+    let bankId = 'bca';
+    let bankName = 'Bank BCA';
+    if (lower.includes('mandiri') || lower.includes('livin')) {
+      bankId = 'mandiri';
+      bankName = 'Bank Mandiri';
+    } else if (lower.includes('bca') || lower.includes('mybca')) {
+      bankId = 'bca';
+      bankName = 'Bank BCA';
+    } else if (lower.includes('bri') || lower.includes('brimo')) {
+      bankId = 'bri';
+      bankName = 'Bank BRI';
+    } else if (lower.includes('bni') || lower.includes('wondr')) {
+      bankId = 'bni';
+      bankName = 'Bank BNI';
+    }
+
+    // 2. Tipe Transaksi
+    let type = 'out';
+    const incomeKeywords = ['dana masuk', 'transfer masuk', 'menerima transfer', 'uang masuk', 'kredit', 'top up masuk', 'berhasil menerima', 'rekening anda dikredit'];
+    if (incomeKeywords.some(k => lower.includes(k)) || /\bc:\s*[\d\.,]+/i.test(fullContent)) {
+      type = 'in';
+    }
+
+    // 3. Ekstraksi Nominal
+    let amount = 0;
+    const amountPatterns = [
+      /(?:rp\.?|idr)\s*([\d\.,]+)/i,
+      /(?:sebesar|sejumlah|nominal)\s*(?:rp\.?|idr)?\s*([\d\.,]+)/i,
+      /\b[dc]:\s*([\d\.,]+)/i,
+      /\b([\d]{1,3}(?:\.[\d]{3})+(?:,[\d]{2})?)\b/
+    ];
+
+    for (const pat of amountPatterns) {
+      const m = fullContent.match(pat);
+      if (m && m[1]) {
+        let rawAmount = m[1].trim().replace(/[.,;: ]+$/, '');
+        rawAmount = rawAmount.replace(/[,\.]00$/, '');
+        const clean = rawAmount.replace(/[^\d]/g, '');
+        const num = parseInt(clean, 10);
+        if (num > 0) {
+          amount = num;
+          break;
+        }
+      }
+    }
+
+    // 4. Merchant / Keterangan
+    let desc = '';
+    const descMatch = fullContent.match(/(?:di|ke|merchant|kepada|tujuan|dari)\s+([a-zA-Z0-9\s\.\-_&]+?)(?:(?=sebesar|pada|tgl|tanggal|rp|idr|saldo|berhasil|\n|\r|$))/i);
+    if (descMatch && descMatch[1] && descMatch[1].trim().length > 2 && descMatch[1].trim().length < 50) {
+      desc = descMatch[1].trim();
+    }
+    if (!desc) {
+      const beritaMatch = fullContent.match(/(?:berita|keterangan|catatan|ket|pesan):\s*([^\n\r,\.]+)/i);
+      if (beritaMatch && beritaMatch[1]) {
+        desc = beritaMatch[1].trim();
+      }
+    }
+    if (!desc) {
+      desc = type === 'in' ? `Dana Masuk ${bankName}` : `${lower.includes('qris') ? 'Pembayaran QRIS' : 'Pengeluaran'} ${bankName}`;
+    }
+
+    // 5. Smart Pos Kategori
+    let category = 'Lainnya';
+    const catSearch = (desc + " " + fullContent).toLowerCase();
+    if (/(makan|resto|kopi|cafe|coffee|warung|kuliner|bakso|nasi|mie|food|kitchen|dapur|burger|pizza|martabak)/i.test(catSearch)) {
+      category = 'Makanan';
+    } else if (/(spbu|pertamina|shell|bensin|bbm|parkir|toll|tol|gojek|grab|maxim|ojol|transport)/i.test(catSearch)) {
+      category = 'Bensin';
+    } else if (/(indomaret|alfamart|superindo|hypermart|transmart|toko|belanja|shopee|tokopedia|lazada|tiktok)/i.test(catSearch)) {
+      category = 'Belanja';
+    } else if (/(gaji|payroll|bonus|tunjangan|honor|fee)/i.test(catSearch)) {
+      category = 'Gaji';
+    } else if (/(apotek|kimia farma|k24|dokter|klinik|rumah sakit|rs|obat|sehat)/i.test(catSearch)) {
+      category = 'Kesehatan';
+    } else if (/(bioskop|cinema|xxi|game|steam|playstation|netflix|spotify|hiburan)/i.test(catSearch)) {
+      category = 'Hiburan';
+    }
+
+    const now = new Date();
+    return {
+      id: 'tx_auto_' + Date.now(),
+      bankId,
+      bankName,
+      type,
+      amount,
+      desc,
+      category,
+      date: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      fullDate: now.toISOString(),
+      rawText: fullContent,
+      source: 'auto_sync'
+    };
+  },
+
+  processTransactionRecord(item) {
+    if (!item.amount || item.amount <= 0) return;
+
+    // 1. Cocokkan rekening Bank
+    let matchedBank = null;
+    if (item.bankId) {
+      matchedBank = state.banks.find(b => b.id.toLowerCase() === item.bankId.toLowerCase());
+    }
+    if (!matchedBank && item.bankName) {
+      matchedBank = state.banks.find(b => 
+        b.name.toLowerCase().includes(item.bankId?.toLowerCase() || '') || 
+        item.bankName.toLowerCase().includes(b.name.toLowerCase())
+      );
+    }
+    if (!matchedBank && state.banks.length > 0) {
+      matchedBank = state.banks[0];
+    }
+
+    // 2. Cocokkan dompet / pos anggaran
+    let matchedWallet = null;
+    if (item.category) {
+      matchedWallet = state.wallets.find(w => {
+        const wName = w.name.toLowerCase();
+        const cat = item.category.toLowerCase();
+        return wName.includes(cat) || cat.includes(wName);
+      });
+    }
+    if (!matchedWallet && item.desc) {
+      matchedWallet = state.wallets.find(w => {
+        const wName = w.name.toLowerCase();
+        const d = item.desc.toLowerCase();
+        return d.includes(wName);
+      });
+    }
+    if (!matchedWallet && state.wallets.length > 0) {
+      if (item.type === 'in') {
+        matchedWallet = state.wallets.find(w => /tabung|utama|kas/i.test(w.name)) || state.wallets[0];
+      } else {
+        matchedWallet = state.wallets[0];
+      }
+    }
+
+    const now = new Date();
+    const dateFormatted = item.date || now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    const fullDate = item.fullDate || now.toISOString();
+
+    const newTx = {
+      walletId: matchedWallet ? matchedWallet.id : '',
+      bankId: matchedBank ? matchedBank.id : (state.banks[0]?.id || ''),
+      amount: Number(item.amount),
+      category: item.category || (matchedWallet ? matchedWallet.name : 'Lainnya'),
+      desc: item.desc || (item.type === 'in' ? 'Pemasukan Otomatis' : 'Pengeluaran Otomatis'),
+      type: item.type === 'in' ? 'in' : 'out',
+      date: dateFormatted,
+      fullDate: fullDate,
+      source: 'auto_sync'
+    };
+
+    state.transactions.push(newTx);
+    state.saveData();
+    this.renderAll();
+
+    const symbol = item.type === 'in' ? '+' : '-';
+    const toastMsg = `
+      <div>
+        <div class="font-bold text-white flex items-center gap-1.5">
+          <span>⚡ Transaksi Otomatis (${matchedBank?.name || item.bankName || 'Bank'})</span>
+        </div>
+        <div class="mt-0.5 text-slate-200">
+          ${newTx.desc} &bull; <strong class="${item.type === 'in' ? 'text-emerald-300' : 'text-rose-300'} font-mono">${symbol}${utils.formatRupiah(newTx.amount)}</strong>
+        </div>
+        <div class="text-[10px] text-slate-400 mt-0.5">Dialokasikan ke dompet: <em>${matchedWallet?.name || 'Utama'}</em></div>
+      </div>
+    `;
+    if (typeof ui !== 'undefined' && ui.showToast) {
+      ui.showToast(toastMsg, item.type === 'in' ? 'success' : 'info');
+    }
+  },
+
   initWebhook() {
     this.loadWebhookInfo();
     this.checkWebhookQueue();
 
-    // Polling antrean setiap 5 detik
     if (this.webhookPollTimer) clearInterval(this.webhookPollTimer);
     this.webhookPollTimer = setInterval(() => {
       this.checkWebhookQueue();
     }, 5000);
 
-    // Cek antrean saat window kembali fokus/aktif
     window.addEventListener('focus', () => {
       this.checkWebhookQueue();
     });
@@ -435,12 +632,13 @@ const app = {
 
   loadWebhookInfo() {
     fetch('api/sync.php?action=get_info')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Static host or PHP not available');
+        return res.json();
+      })
       .then(data => {
         if (data && data.status === 'success') {
           this.webhookToken = data.token;
-
-          // Buat URL yang dapat diakses oleh HP (jika dibuka via IP atau localhost)
           let targetHost = window.location.host;
           let protocol = window.location.protocol;
           let pathname = window.location.pathname.replace(/\/index\.html.*$/, '').replace(/\/+$/, '');
@@ -455,13 +653,21 @@ const app = {
           if (tokenInput) tokenInput.value = data.token;
         }
       })
-      .catch(err => {
-        console.warn('Gagal memuat info webhook:', err);
+      .catch(() => {
+        // Fallback untuk GitHub Pages / Static Hosting (menggunakan URL Query auto-record)
+        let directUrl = `${window.location.origin}${window.location.pathname}?notif={notification}`;
+        this.webhookUrl = directUrl;
+
+        const urlInput = document.getElementById('webhook-url-display');
+        if (urlInput) urlInput.value = directUrl;
+
+        const tokenInput = document.getElementById('webhook-token-display');
+        if (tokenInput) tokenInput.value = 'Mode Otomatis (GitHub Pages)';
       });
   },
 
   regenerateWebhookToken() {
-    if (!confirm('Peringatan: Membuat token baru akan menonaktifkan URL webhook lama di HP Anda.\n\nAnda harus memperbarui URL webhook di MacroDroid pada HP Anda. Lanjutkan?')) {
+    if (!confirm('Peringatan: Membuat token baru akan menonaktifkan URL webhook lama di HP Anda.\n\nLanjutkan?')) {
       return;
     }
 
@@ -483,101 +689,20 @@ const app = {
     this.isCheckingQueue = true;
 
     fetch('api/sync.php?action=get_queue')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('No queue backend');
+        return res.json();
+      })
       .then(res => {
         if (res && res.status === 'success' && Array.isArray(res.items) && res.items.length > 0) {
-          let hasChanges = false;
-
           res.items.forEach(item => {
-            if (!item.amount || item.amount <= 0) return;
-
-            // 1. Cocokkan rekening Bank
-            let matchedBank = null;
-            if (item.bankId) {
-              matchedBank = state.banks.find(b => b.id.toLowerCase() === item.bankId.toLowerCase());
-            }
-            if (!matchedBank && item.bankName) {
-              matchedBank = state.banks.find(b => 
-                b.name.toLowerCase().includes(item.bankId?.toLowerCase() || '') || 
-                item.bankName.toLowerCase().includes(b.name.toLowerCase())
-              );
-            }
-            if (!matchedBank && state.banks.length > 0) {
-              matchedBank = state.banks[0];
-            }
-
-            // 2. Cocokkan dompet / pos anggaran
-            let matchedWallet = null;
-            if (item.category) {
-              matchedWallet = state.wallets.find(w => {
-                const wName = w.name.toLowerCase();
-                const cat = item.category.toLowerCase();
-                return wName.includes(cat) || cat.includes(wName);
-              });
-            }
-            if (!matchedWallet && item.desc) {
-              matchedWallet = state.wallets.find(w => {
-                const wName = w.name.toLowerCase();
-                const d = item.desc.toLowerCase();
-                return d.includes(wName);
-              });
-            }
-            if (!matchedWallet && state.wallets.length > 0) {
-              if (item.type === 'in') {
-                // Untuk pemasukan, utamakan pos tabungan/utama
-                matchedWallet = state.wallets.find(w => /tabung|utama|kas/i.test(w.name)) || state.wallets[0];
-              } else {
-                matchedWallet = state.wallets[0];
-              }
-            }
-
-            const now = new Date();
-            const dateFormatted = item.date || now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-            const fullDate = item.fullDate || now.toISOString();
-
-            const newTx = {
-              walletId: matchedWallet ? matchedWallet.id : '',
-              bankId: matchedBank ? matchedBank.id : (state.banks[0]?.id || ''),
-              amount: Number(item.amount),
-              category: item.category || (matchedWallet ? matchedWallet.name : 'Lainnya'),
-              desc: item.desc || (item.type === 'in' ? 'Pemasukan Otomatis' : 'Pengeluaran Otomatis'),
-              type: item.type === 'in' ? 'in' : 'out',
-              date: dateFormatted,
-              fullDate: fullDate,
-              source: 'webhook_auto'
-            };
-
-            state.transactions.push(newTx);
-            hasChanges = true;
-
-            const symbol = item.type === 'in' ? '+' : '-';
-            const toastMsg = `
-              <div>
-                <div class="font-bold text-white flex items-center gap-1.5">
-                  <span>⚡ Transaksi Otomatis (${matchedBank?.name || item.bankName || 'Bank'})</span>
-                </div>
-                <div class="mt-0.5 text-slate-200">
-                  ${newTx.desc} &bull; <strong class="${item.type === 'in' ? 'text-emerald-300' : 'text-rose-300'} font-mono">${symbol}${utils.formatRupiah(newTx.amount)}</strong>
-                </div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Dialokasikan ke dompet: <em>${matchedWallet?.name || 'Utama'}</em></div>
-              </div>
-            `;
-            if (typeof ui !== 'undefined' && ui.showToast) {
-              ui.showToast(toastMsg, item.type === 'in' ? 'success' : 'info');
-            }
+            this.processTransactionRecord(item);
           });
-
-          if (hasChanges) {
-            state.saveData();
-            this.renderAll();
-
-            // Acknowledge untuk membersihkan queue di server
-            fetch('api/sync.php?action=ack', { method: 'POST' }).catch(() => {});
-          }
+          fetch('api/sync.php?action=ack', { method: 'POST' }).catch(() => {});
         }
       })
-      .catch(err => {
-        // Polling background silent catch
+      .catch(() => {
+        // Silent catch saat berada di GitHub Pages (static)
       })
       .finally(() => {
         this.isCheckingQueue = false;
@@ -598,44 +723,53 @@ const app = {
       resultBox.innerHTML = '<span class="text-slate-500 animate-pulse">Memproses parsing notifikasi m-banking...</span>';
     }
 
+    // Coba via server PHP, jika gagal fallback langsung via client JavaScript
     fetch('api/sync.php?action=test_simulation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, save: 1 })
     })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error('Backend not available');
+      return res.json();
+    })
     .then(res => {
       if (res.status === 'success' && res.data) {
-        const d = res.data;
-        if (resultBox) {
-          resultBox.innerHTML = `
-            <div class="text-emerald-700 font-bold flex items-center gap-1.5">
-              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              <span>Berhasil Diparse & Dimasukkan Antrean!</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 mt-2 font-mono text-[11px] text-slate-700">
-              <div>Bank: <strong class="text-slate-900">${d.bankName}</strong></div>
-              <div>Tipe: <strong class="${d.type === 'in' ? 'text-emerald-600' : 'text-rose-600'}">${d.type === 'in' ? 'Pemasukan' : 'Pengeluaran'}</strong></div>
-              <div>Nominal: <strong class="text-slate-900">${utils.formatRupiah(d.amount)}</strong></div>
-              <div>Kategori: <strong class="text-slate-900">${d.category}</strong></div>
-              <div class="col-span-2">Keterangan: <strong class="text-slate-900">${d.desc}</strong></div>
-            </div>
-          `;
-        }
-        // Langsung sinkronkan antrean ke state dan tampilan
+        this.showSimulationResult(res.data, resultBox);
         this.checkWebhookQueue();
       } else {
-        if (resultBox) {
-          resultBox.innerHTML = `<span class="text-rose-600 font-bold">Gagal memproses simulasi: ${res.message || 'Terjadi kesalahan'}</span>`;
-        }
+        throw new Error(res.message || 'Error parsing');
       }
     })
-    .catch(err => {
-      console.error('Simulation error:', err);
-      if (resultBox) {
-        resultBox.innerHTML = `<span class="text-rose-600 font-bold">Gagal menghubungi server API. Pastikan Apache/PHP berjalan.</span>`;
+    .catch(() => {
+      // Fallback pemrosesan instan client-side untuk GitHub Pages
+      const parsed = this.parseBankNotification(text);
+      if (parsed && parsed.amount > 0) {
+        this.showSimulationResult(parsed, resultBox);
+        this.processTransactionRecord(parsed);
+      } else {
+        if (resultBox) {
+          resultBox.innerHTML = `<span class="text-rose-600 font-bold">Gagal mendeteksi nominal transaksi dari teks notifikasi.</span>`;
+        }
       }
     });
+  },
+
+  showSimulationResult(d, resultBox) {
+    if (!resultBox) return;
+    resultBox.innerHTML = `
+      <div class="text-emerald-700 font-bold flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        <span>Berhasil Diparse & Dicatat Otomatis!</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mt-2 font-mono text-[11px] text-slate-700">
+        <div>Bank: <strong class="text-slate-900">${d.bankName}</strong></div>
+        <div>Tipe: <strong class="${d.type === 'in' ? 'text-emerald-600' : 'text-rose-600'}">${d.type === 'in' ? 'Pemasukan' : 'Pengeluaran'}</strong></div>
+        <div>Nominal: <strong class="text-slate-900">${utils.formatRupiah(d.amount)}</strong></div>
+        <div>Kategori: <strong class="text-slate-900">${d.category}</strong></div>
+        <div class="col-span-2">Keterangan: <strong class="text-slate-900">${d.desc}</strong></div>
+      </div>
+    `;
   }
 };
 
