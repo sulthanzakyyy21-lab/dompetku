@@ -20,6 +20,8 @@ const state = {
     'Lainnya'
   ],
   colors: [
+    { color: 'bg-[#4899EA]', hex: '#4899EA' },
+    { color: 'bg-[#67F3CE]', hex: '#67F3CE' },
     { color: 'bg-blue-600', hex: '#0284c7' },
     { color: 'bg-emerald-600', hex: '#059669' },
     { color: 'bg-amber-600', hex: '#d97706' },

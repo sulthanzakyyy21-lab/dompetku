@@ -147,9 +147,9 @@ const ui = {
       if (catWrapper) catWrapper.classList.remove('hidden');
 
       if (btnSubmit) {
-        btnSubmit.className = "w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-semibold py-3.5 rounded-xl transition-all shadow-sm text-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnSubmit.className = "w-full bg-gradient-to-r from-[#4899EA] to-[#67F3CE] hover:brightness-105 active:scale-[0.99] text-slate-950 font-bold py-3.5 rounded-xl transition-all shadow-md shadow-[#4899EA]/25 text-sm flex items-center justify-center gap-2 cursor-pointer";
         btnSubmit.innerHTML = `
-          <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <svg class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           <span>Simpan Pengeluaran</span>
         `;
       }
@@ -165,9 +165,9 @@ const ui = {
       this.initIncomeSplit();
 
       if (btnSubmit) {
-        btnSubmit.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.99] text-white font-semibold py-3.5 rounded-xl transition-all shadow-sm text-sm flex items-center justify-center gap-2 cursor-pointer";
+        btnSubmit.className = "w-full bg-gradient-to-r from-[#67F3CE] to-[#4899EA] hover:brightness-105 active:scale-[0.99] text-slate-950 font-bold py-3.5 rounded-xl transition-all shadow-md shadow-[#67F3CE]/25 text-sm flex items-center justify-center gap-2 cursor-pointer";
         btnSubmit.innerHTML = `
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <svg class="w-4 h-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           <span>Simpan Pemasukan & Alokasikan</span>
         `;
       }
@@ -863,7 +863,7 @@ const ui = {
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         <span>Simpan Rekening Bank</span>
       `;
-      saveBtn.className = 'flex-1 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-xs active:scale-[0.99] cursor-pointer flex items-center justify-center gap-1.5';
+      saveBtn.className = 'flex-1 bg-gradient-to-r from-[#4899EA] to-[#67F3CE] hover:brightness-105 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition shadow-sm shadow-[#4899EA]/25 active:scale-[0.99] cursor-pointer flex items-center justify-center gap-1.5';
     }
 
     const cancelBtn = document.getElementById('btn-cancel-bank');
@@ -1049,7 +1049,7 @@ const ui = {
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         <span>Simpan Rekening</span>
       `;
-      saveBtn.className = 'flex-1 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-xs active:scale-[0.99] cursor-pointer flex items-center justify-center gap-1.5';
+      saveBtn.className = 'flex-1 bg-gradient-to-r from-[#4899EA] to-[#67F3CE] hover:brightness-105 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition shadow-sm shadow-[#4899EA]/25 active:scale-[0.99] cursor-pointer flex items-center justify-center gap-1.5';
     }
 
     const cancelBtn = document.getElementById('btn-cancel-wallet');
