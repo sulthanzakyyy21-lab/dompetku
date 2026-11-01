@@ -158,5 +158,14 @@ const utils = {
       }
       input.setSelectionRange(newCursorPos, newCursorPos);
     });
+  },
+
+  /**
+   * Menghasilkan delay berurutan (stagger) yang dibatasi maksimal 12 item pertama
+   * agar tabel dengan ratusan baris tetap instan dan tidak membebani CPU (Low-Spec Friendly)
+   */
+  getSafeStaggerDelay: (index, baseDelay = 0.08, step = 0.045) => {
+    const cappedIndex = Math.min(index, 12);
+    return `${(baseDelay + cappedIndex * step).toFixed(3)}s`;
   }
 };

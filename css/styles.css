@@ -42,51 +42,122 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Tab Management - Smooth & Lazy Transition */
+/* ==========================================================================
+   STAGGERED SMOOTH REVEAL — OPTIMIZED FOR LOW-END PC (60 FPS GPU COMPOSITED)
+   Kurva: cubic-bezier(0.16, 1, 0.3, 1) | Bebas Blur Filter (Zero Frame Drop)
+   ========================================================================== */
+
+/* 1. Keyframe untuk Kontainer Utama (Header, Banner, KPI, Section) */
+@keyframes smoothRevealContainer {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* 2. Keyframe untuk Item Berurutan (Kartu Simpul & Baris Tabel) */
+@keyframes smoothCascadeItem {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* 3. Keyframe saat Konten Berganti / Klik Menu (Re-Entrance) */
+@keyframes smoothContentSwitch {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Tab Management - Hardware Accelerated */
 .tab-content {
   display: none;
 }
 .tab-content.active {
   display: block;
-  animation: smoothTabEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: smoothContentSwitch 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes smoothTabEntrance {
-  0% {
-    opacity: 0;
-    transform: translateY(18px) scale(0.992);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* Class Kontainer Utama (Mewah & Ringan) */
+.luxury-reveal {
+  opacity: 0;
+  animation: smoothRevealContainer 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
-/* Staggered Lazy Entrance for Child Sections in Active Tab */
+/* Urutan Jeda Kontainer (Stagger Delay Golden Ratio) */
+.delay-1 { animation-delay: 0.04s; }
+.delay-2 { animation-delay: 0.14s; }
+.delay-3 { animation-delay: 0.22s; }
+.delay-4 { animation-delay: 0.30s; }
+
+/* Otomatisasi Stagger Kontainer Anak di Tab Aktif (Jika Tanpa Kelas Manual) */
 .tab-content.active > div:nth-child(1) {
-  animation: smoothSectionReveal 0.48s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
+  animation: smoothRevealContainer 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 .tab-content.active > div:nth-child(2) {
-  animation: smoothSectionReveal 0.52s cubic-bezier(0.16, 1, 0.3, 1) 0.09s both;
+  animation: smoothRevealContainer 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 .tab-content.active > div:nth-child(3) {
-  animation: smoothSectionReveal 0.56s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+  animation: smoothRevealContainer 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 .tab-content.active > div:nth-child(4) {
-  animation: smoothSectionReveal 0.60s cubic-bezier(0.16, 1, 0.3, 1) 0.19s both;
+  animation: smoothRevealContainer 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 .tab-content.active > div:nth-child(5) {
-  animation: smoothSectionReveal 0.64s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+  animation: smoothRevealContainer 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.38s both;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
-@keyframes smoothSectionReveal {
-  0% {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
+/* Class untuk Kartu atau Baris Tabel (GPU Composited) */
+.cascade-item {
+  opacity: 0;
+  animation: smoothCascadeItem 0.58s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* Class untuk Refresh Isi Konten saat Klik Tab/Sub-menu */
+.panel-content-refresh {
+  animation: smoothContentSwitch 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* Pengaman Otomatis jika PC User Mengaktifkan Mode Hemat Daya / Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .luxury-reveal,
+  .cascade-item,
+  .panel-content-refresh,
+  .tab-content.active,
+  .tab-content.active > div {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -111,7 +182,7 @@ body {
   }
 }
 
-/* Sliding Pill in Sidebar Nav */
+/* Sliding Pill in Sidebar Nav (0.35s cubic-bezier with Hardware Acceleration) */
 .nav-sliding-pill {
   position: absolute;
   left: 0.875rem;
@@ -122,10 +193,12 @@ body {
   box-shadow: 0 6px 20px -2px rgba(4, 32, 53, 0.16), 0 2px 6px -1px rgba(72, 153, 234, 0.22);
   pointer-events: none;
   z-index: 1;
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.25s ease,
               opacity 0.2s ease;
   opacity: 0;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 /* Sidebar Nav Links - Smooth Gliding on White Sliding Pill */

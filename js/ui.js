@@ -38,6 +38,9 @@ const ui = {
     });
 
     this.renderCategories();
+    requestAnimationFrame(() => {
+      this.updateSlidingPill('dashboard');
+    });
   },
 
   setQuickAmount(amount) {
@@ -176,9 +179,23 @@ const ui = {
     const linkTop = targetLink.offsetTop;
     const linkHeight = targetLink.offsetHeight;
 
-    pill.style.transform = `translateY(${linkTop}px)`;
+    pill.style.transform = `translate3d(0, ${linkTop}px, 0)`;
     pill.style.height = `${linkHeight}px`;
     pill.style.opacity = '1';
+  },
+
+  /**
+   * Memicu animasi kemunculan halus saat pengguna berganti tab/divisi
+   * 100% aman untuk PC spek rendah tanpa beban CPU berlebih
+   */
+  triggerSmoothReveal(containerIds = []) {
+    containerIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.animation = 'none';
+      void el.offsetHeight; // Single minimal reflow
+      el.style.animation = '';
+    });
   },
 
   setHistoryPeriod(period) {
@@ -459,7 +476,7 @@ const ui = {
 
     // Update Overview pada Tab Bank
     const tabTotal = document.getElementById('banks-tab-total');
-    if (tabTotal) tabTotal.innerText = utils.formatRupiah(totalBankCash);
+    if (tabTotal) this.animateNumber(tabTotal, totalBankCash, 850);
 
     const tabCount = document.getElementById('banks-tab-count');
     if (tabCount) tabCount.innerText = `${state.banks.length} Rekening`;
@@ -503,14 +520,14 @@ const ui = {
     }
 
     if (bankListEl) {
-      bankListEl.innerHTML = state.banks.map(b => {
+      bankListEl.innerHTML = state.banks.map((b, idx) => {
         const stat = bankStats[b.id] || { initial: 0, income: 0, expense: 0, transfersIn: 0, transfersOut: 0, current: 0 };
         const hex = b.hex || '#0284c7';
         const totalIn = stat.income + stat.transfersIn;
         const totalOut = stat.expense + stat.transfersOut;
 
         return `
-          <div class="bg-white border border-slate-200/90 hover:border-sky-300/80 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
+          <div class="bg-white border border-slate-200/90 hover:border-sky-300/80 rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cascade-item" style="animation-delay: ${utils.getSafeStaggerDelay(idx, 0.08, 0.045)}">
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs text-white" style="background-color: ${hex};">
@@ -660,7 +677,7 @@ const ui = {
       return;
     }
 
-    const rowsHTML = targetTxs.map(tx => {
+    const rowsHTML = targetTxs.map((tx, idx) => {
       const isTransfer = tx.type === 'transfer';
       const isIncome = tx.type === 'in';
       let sign = '-';
@@ -698,7 +715,7 @@ const ui = {
       const dotClass = isTransfer ? 'bg-sky-500' : (isIncome ? 'bg-emerald-500' : 'bg-rose-500');
 
       return `
-        <tr class="hover:bg-sky-50/30 transition-colors group">
+        <tr class="hover:bg-sky-50/30 transition-colors group cascade-item" style="animation-delay: ${utils.getSafeStaggerDelay(idx, 0.05, 0.045)}">
           <td class="py-2.5 px-3 sm:px-4 text-slate-500 font-medium whitespace-nowrap text-[11px] sm:text-xs">
             ${tx.date}
           </td>
@@ -1421,7 +1438,7 @@ const ui = {
     const walletListEl = document.getElementById('wallet-list');
     if (walletListEl) walletListEl.innerHTML = '';
 
-    state.wallets.forEach(w => {
+    state.wallets.forEach((w, idx) => {
       const stats = walletStats[w.id] || { spent: 0, weeklySpent: 0, monthlySpent: 0, income: 0 };
       const remaining = Number(w.budget || 0) + stats.income - stats.spent;
       const maxLimit = Number(w.maxLimit) || 0;
@@ -1468,7 +1485,7 @@ const ui = {
         }
 
         walletListEl.innerHTML += `
-          <div class="bg-white border border-slate-200/90 hover:border-sky-300/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
+          <div class="bg-white border border-slate-200/90 hover:border-sky-300/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cascade-item" style="animation-delay: ${utils.getSafeStaggerDelay(idx, 0.08, 0.045)}">
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs" style="background-color: ${hexColor}15; color: ${hexColor}; border: 1px solid ${hexColor}30;">
@@ -1670,12 +1687,12 @@ const ui = {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                ${txList.map(tx => {
+                ${txList.map((tx, idx) => {
                   const isIncome = tx.type === 'in';
                   const bankObj = state.banks.find(b => b.id === tx.bankId);
                   const bankName = bankObj ? bankObj.name : '';
                   return `
-                    <tr class="hover:bg-sky-50/30 transition-colors group">
+                    <tr class="hover:bg-sky-50/30 transition-colors group cascade-item" style="animation-delay: ${utils.getSafeStaggerDelay(idx, 0.05, 0.045)}">
                       <td class="py-2.5 px-3 sm:px-4 text-slate-500 font-medium whitespace-nowrap text-[11px] sm:text-xs">
                         ${tx.date}
                       </td>
@@ -1732,7 +1749,7 @@ const ui = {
           else if (tx.type === 'out') totalOut += Number(tx.amount || 0);
         });
 
-        const rowsHTML = displayTxs.map(tx => {
+        const rowsHTML = displayTxs.map((tx, idx) => {
           const isIncome = tx.type === 'in';
           const isTransfer = tx.type === 'transfer';
 
@@ -1775,7 +1792,7 @@ const ui = {
           }
 
           return `
-            <tr class="hover:bg-sky-50/30 transition-colors group">
+            <tr class="hover:bg-sky-50/30 transition-colors group cascade-item" style="animation-delay: ${utils.getSafeStaggerDelay(idx, 0.05, 0.045)}">
               <td class="py-2.5 px-3 sm:px-4 text-slate-500 font-medium whitespace-nowrap text-[11px] sm:text-xs">
                 ${tx.date}
               </td>
