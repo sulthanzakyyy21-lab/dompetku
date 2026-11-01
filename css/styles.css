@@ -62,31 +62,71 @@ body {
   }
 }
 
-/* Sidebar Nav Links - Clean Typography with Gradient Active Container */
+/* Sidebar Floating Rail & Full 2026 Gradient (#4899EA <-> #67F3CE) */
+#sidebar {
+  background: linear-gradient(165deg, #4899EA 0%, #3fb6d4 50%, #67F3CE 100%) !important;
+  color: #042035;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 1024px) {
+  #sidebar.floating-rail {
+    position: fixed;
+    top: 0.875rem;
+    bottom: 0.875rem;
+    left: 0.875rem;
+    width: 16rem;
+    height: calc(100vh - 1.75rem);
+    border-radius: 1.5rem;
+    box-shadow: 0 16px 45px -8px rgba(72, 153, 234, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.4);
+    z-index: 40;
+  }
+}
+
+/* Sliding Pill in Sidebar Nav */
+.nav-sliding-pill {
+  position: absolute;
+  left: 0.875rem;
+  right: 0.875rem;
+  top: 0;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 6px 20px -2px rgba(4, 32, 53, 0.16), 0 2px 6px -1px rgba(72, 153, 234, 0.22);
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.25s ease,
+              opacity 0.2s ease;
+  opacity: 0;
+}
+
+/* Sidebar Nav Links - Smooth Gliding on White Sliding Pill */
 .nav-link {
-  color: #475569;
-  font-weight: 500;
+  position: relative;
+  z-index: 2;
+  color: #042035;
+  font-weight: 600;
   border-radius: 0.75rem;
   border: 1px solid transparent;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .nav-link svg {
-  color: #64748b;
-  transition: color 0.18s ease;
+  color: #042035;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 .nav-link:hover {
-  color: #0f172a;
-  background-color: #f1f5f9;
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #021727;
 }
 .nav-link:hover svg {
-  color: #0f172a;
+  transform: translateX(2px);
 }
 .nav-link.active-nav {
   color: #042035 !important;
-  background: linear-gradient(135deg, #4899EA 0%, #67F3CE 100%) !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
+  background: transparent !important;
   border: none !important;
-  box-shadow: 0 4px 14px -2px rgba(72, 153, 234, 0.35);
 }
 .nav-link.active-nav svg {
   color: #042035 !important;
@@ -112,13 +152,14 @@ body {
   color: #042035 !important;
 }
 
-/* Executive Metric Card - Styled with Luxury #4899EA & #67F3CE Glow */
+/* Executive Metric Card - Styled with 2026 Gradient (#4899EA <-> #67F3CE) */
 .hero-metric-card {
-  background: linear-gradient(135deg, #071321 0%, #0d223a 50%, #0f3554 100%);
+  background: linear-gradient(135deg, #4899EA 0%, #3fb6d4 50%, #67F3CE 100%) !important;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(103, 243, 206, 0.35);
-  box-shadow: 0 12px 36px -4px rgba(72, 153, 234, 0.25), 0 0 25px -4px rgba(103, 243, 206, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 16px 45px -8px rgba(72, 153, 234, 0.4);
+  color: #042035;
 }
 
 .hero-metric-card::after {
@@ -128,7 +169,7 @@ body {
   right: -40px;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(103, 243, 206, 0.22) 0%, rgba(72, 153, 234, 0.15) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.08) 50%, transparent 70%);
   pointer-events: none;
 }
 

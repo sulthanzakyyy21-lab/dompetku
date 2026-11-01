@@ -5,7 +5,9 @@ const analytics = {
   renderCharts() {
     const filteredTxs = state.transactions.filter(tx => {
       const d = new Date(tx.fullDate);
-      return d.getMonth() === state.filterMonth && d.getFullYear() === state.filterYear;
+      const isMonthMatch = state.filterMonth === 'all' || d.getMonth() === Number(state.filterMonth);
+      const isYearMatch = state.filterYear === 'all' || d.getFullYear() === Number(state.filterYear);
+      return isMonthMatch && isYearMatch;
     });
 
     this.renderTrendChart(filteredTxs);
@@ -18,19 +20,37 @@ const analytics = {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    const daysInMonth = new Date(state.filterYear, state.filterMonth + 1, 0).getDate();
-    const labels = Array.from({length: daysInMonth}, (_, i) => `Tgl ${i + 1}`);
-    const incomeData = new Array(daysInMonth).fill(0);
-    const expenseData = new Array(daysInMonth).fill(0);
+    let labels = [];
+    let incomeData = [];
+    let expenseData = [];
 
-    filteredTxs.forEach(tx => {
-      const day = new Date(tx.fullDate).getDate();
-      if (tx.type === 'in') {
-        incomeData[day - 1] += Number(tx.amount || 0);
-      } else if (tx.type === 'out') {
-        expenseData[day - 1] += Number(tx.amount || 0);
-      }
-    });
+    if (state.filterMonth === 'all') {
+      labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      incomeData = new Array(12).fill(0);
+      expenseData = new Array(12).fill(0);
+      filteredTxs.forEach(tx => {
+        const m = new Date(tx.fullDate).getMonth();
+        if (m >= 0 && m < 12) {
+          if (tx.type === 'in') incomeData[m] += Number(tx.amount || 0);
+          else if (tx.type === 'out') expenseData[m] += Number(tx.amount || 0);
+        }
+      });
+    } else {
+      const year = state.filterYear === 'all' ? new Date().getFullYear() : Number(state.filterYear);
+      const month = Number(state.filterMonth);
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      labels = Array.from({length: daysInMonth}, (_, i) => `Tgl ${i + 1}`);
+      incomeData = new Array(daysInMonth).fill(0);
+      expenseData = new Array(daysInMonth).fill(0);
+
+      filteredTxs.forEach(tx => {
+        const day = new Date(tx.fullDate).getDate();
+        if (day >= 1 && day <= daysInMonth) {
+          if (tx.type === 'in') incomeData[day - 1] += Number(tx.amount || 0);
+          else if (tx.type === 'out') expenseData[day - 1] += Number(tx.amount || 0);
+        }
+      });
+    }
 
     if (this.trendChart) {
       this.trendChart.destroy();

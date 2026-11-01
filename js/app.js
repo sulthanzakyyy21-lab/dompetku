@@ -21,8 +21,10 @@ const app = {
   },
 
   onFilterChange() {
-    state.filterMonth = Number(document.getElementById('filter-month').value);
-    state.filterYear = Number(document.getElementById('filter-year').value);
+    const mVal = document.getElementById('filter-month').value;
+    const yVal = document.getElementById('filter-year').value;
+    state.filterMonth = mVal === 'all' ? 'all' : Number(mVal);
+    state.filterYear = yVal === 'all' ? 'all' : Number(yVal);
     this.renderAll();
   },
 

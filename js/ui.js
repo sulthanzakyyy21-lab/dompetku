@@ -50,7 +50,10 @@ const ui = {
     input.focus();
   },
 
+  currentTab: 'dashboard',
+
   switchTab(tabId) {
+    this.currentTab = tabId;
     document.querySelectorAll('.tab-content').forEach(tab => {
       tab.classList.remove('active');
       tab.classList.add('hidden');
@@ -69,6 +72,9 @@ const ui = {
     if (activeSidebar) {
       activeSidebar.classList.add('active-nav');
     }
+
+    // Physical Sliding Pill Smooth Gliding Transition
+    this.updateSlidingPill(tabId);
 
     document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
       btn.classList.remove('active-bnav');
@@ -106,6 +112,37 @@ const ui = {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
+  updateSlidingPill(tabId) {
+    const pill = document.getElementById('nav-sliding-pill');
+    const nav = document.getElementById('sidebar-nav');
+    const targetLink = document.getElementById(`nav-${tabId}`);
+    if (!pill || !nav || !targetLink) return;
+
+    const linkTop = targetLink.offsetTop;
+    const linkHeight = targetLink.offsetHeight;
+
+    pill.style.transform = `translateY(${linkTop}px)`;
+    pill.style.height = `${linkHeight}px`;
+    pill.style.opacity = '1';
+  },
+
+  setHistoryPeriod(period) {
+    if (period === 'all') {
+      state.filterMonth = 'all';
+      state.filterYear = 'all';
+    } else {
+      state.filterMonth = new Date().getMonth();
+      state.filterYear = new Date().getFullYear();
+    }
+
+    const monthSelect = document.getElementById('filter-month');
+    const yearSelect = document.getElementById('filter-year');
+    if (monthSelect) monthSelect.value = String(state.filterMonth);
+    if (yearSelect) yearSelect.value = String(state.filterYear);
+
+    app.renderAll();
+  },
+
   setTxWalletFilter(walletId) {
     this.selectedTxWalletTab = walletId;
     this.renderTransactions();
@@ -120,11 +157,22 @@ const ui = {
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
-    monthSelect.innerHTML = months.map((m, i) => `<option value="${i}" ${i === state.filterMonth ? 'selected' : ''}>${m}</option>`).join('');
+    let monthOpts = `<option value="all" ${state.filterMonth === 'all' ? 'selected' : ''}>Semua Bulan (All)</option>`;
+    monthOpts += months.map((m, i) => `<option value="${i}" ${String(state.filterMonth) === String(i) ? 'selected' : ''}>${m}</option>`).join('');
+    monthSelect.innerHTML = monthOpts;
     
     const currentYear = new Date().getFullYear();
-    const years = [currentYear - 1, currentYear, currentYear + 1];
-    yearSelect.innerHTML = years.map(y => `<option value="${y}" ${y === state.filterYear ? 'selected' : ''}>${y}</option>`).join('');
+    const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+    let yearOpts = `<option value="all" ${state.filterYear === 'all' ? 'selected' : ''}>Semua Tahun (All)</option>`;
+    yearOpts += years.map(y => `<option value="${y}" ${String(state.filterYear) === String(y) ? 'selected' : ''}>${y}</option>`).join('');
+    yearSelect.innerHTML = yearOpts;
+
+    // Listener resize untuk gliding pill agar posisi selalu presisi
+    window.removeEventListener('resize', this._resizePillHandler);
+    this._resizePillHandler = () => {
+      this.updateSlidingPill(this.currentTab || 'dashboard');
+    };
+    window.addEventListener('resize', this._resizePillHandler);
   },
 
   setTxType(type) {
@@ -497,7 +545,9 @@ const ui = {
       .map((tx, idx) => ({ ...tx, realIndex: idx }))
       .filter(tx => {
         const d = new Date(tx.fullDate);
-        return d.getMonth() === state.filterMonth && d.getFullYear() === state.filterYear;
+        const matchMonth = state.filterMonth === 'all' || d.getMonth() === Number(state.filterMonth);
+        const matchYear = state.filterYear === 'all' || d.getFullYear() === Number(state.filterYear);
+        return matchMonth && matchYear;
       })
       .filter(tx => tx.type === 'transfer' || tx.bankId || tx.fromBankId || tx.toBankId)
       .sort((a, b) => {
@@ -1263,7 +1313,8 @@ const ui = {
       if (tx.type === 'transfer') return;
       const amount = Number(tx.amount);
       const txDate = new Date(tx.fullDate);
-      const isSelectedMonth = txDate.getMonth() === state.filterMonth && txDate.getFullYear() === state.filterYear;
+      const isSelectedMonth = (state.filterMonth === 'all' || txDate.getMonth() === Number(state.filterMonth)) &&
+                              (state.filterYear === 'all' || txDate.getFullYear() === Number(state.filterYear));
 
       if (walletStats[tx.walletId]) {
         if (tx.type === 'in') {
@@ -1427,6 +1478,8 @@ const ui = {
     
     if (!document.querySelector('.tab-content.active')) {
       this.switchTab('dashboard');
+    } else {
+      this.updateSlidingPill(this.currentTab || 'dashboard');
     }
   },
 
@@ -1434,6 +1487,20 @@ const ui = {
     const listEl = document.getElementById('monthly-tx-list');
     const recentListEl = document.getElementById('recent-tx-list');
     const filterTabsContainer = document.getElementById('tx-wallet-filter-tabs');
+
+    // Update status tombol periode filter history jika ada
+    const btnPeriodCurrent = document.getElementById('btn-period-current');
+    const btnPeriodAll = document.getElementById('btn-period-all');
+    const isAllPeriod = state.filterMonth === 'all' && state.filterYear === 'all';
+    if (btnPeriodCurrent && btnPeriodAll) {
+      if (isAllPeriod) {
+        btnPeriodAll.className = "px-2.5 py-1 rounded-lg font-bold transition cursor-pointer bg-white text-slate-900 shadow-xs";
+        btnPeriodCurrent.className = "px-2.5 py-1 rounded-lg font-medium transition cursor-pointer text-slate-600 hover:text-slate-900";
+      } else {
+        btnPeriodCurrent.className = "px-2.5 py-1 rounded-lg font-bold transition cursor-pointer bg-white text-slate-900 shadow-xs";
+        btnPeriodAll.className = "px-2.5 py-1 rounded-lg font-medium transition cursor-pointer text-slate-600 hover:text-slate-900";
+      }
+    }
     
     const runningBalanceMap = new Map();
     const walletFinalBalances = {};
@@ -1463,7 +1530,9 @@ const ui = {
       .map((tx, idx) => ({ ...tx, realIndex: idx }))
       .filter(tx => {
         const d = new Date(tx.fullDate);
-        return d.getMonth() === state.filterMonth && d.getFullYear() === state.filterYear;
+        const matchMonth = state.filterMonth === 'all' || d.getMonth() === Number(state.filterMonth);
+        const matchYear = state.filterYear === 'all' || d.getFullYear() === Number(state.filterYear);
+        return matchMonth && matchYear;
       })
       .sort((a, b) => {
         const timeB = b.fullDate ? new Date(b.fullDate).getTime() : 0;
