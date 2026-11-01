@@ -27,6 +27,7 @@ const ui = {
         this.toggleModalCategory(false);
         this.toggleModalBank(false);
         this.toggleModalBankTransfer(false);
+        this.toggleModalWebhook(false);
       }
     });
 
@@ -721,6 +722,114 @@ const ui = {
       modal.classList.toggle('hidden');
       modal.classList.toggle('flex');
     }
+  },
+
+  toggleModalWebhook(forceState) {
+    const modal = document.getElementById('modal-webhook');
+    if (!modal) return;
+    const isOpening = typeof forceState === 'boolean' ? forceState : modal.classList.contains('hidden');
+    if (isOpening) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (typeof app !== 'undefined' && app.loadWebhookInfo) {
+        app.loadWebhookInfo();
+      }
+    } else {
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+    }
+  },
+
+  copyWebhookUrl() {
+    const input = document.getElementById('webhook-url-display');
+    if (!input || !input.value) return;
+    const val = input.value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(val).then(() => {
+        this.showToast('✅ URL Webhook berhasil disalin ke clipboard!', 'success');
+      }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+        this.showToast('✅ URL Webhook berhasil disalin!', 'success');
+      });
+    } else {
+      input.select();
+      document.execCommand('copy');
+      this.showToast('✅ URL Webhook berhasil disalin!', 'success');
+    }
+  },
+
+  copyWebhookToken() {
+    const input = document.getElementById('webhook-token-display');
+    if (!input || !input.value) return;
+    const val = input.value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(val).then(() => {
+        this.showToast('✅ Token API berhasil disalin ke clipboard!', 'success');
+      }).catch(() => {
+        input.select();
+        document.execCommand('copy');
+        this.showToast('✅ Token API berhasil disalin!', 'success');
+      });
+    } else {
+      input.select();
+      document.execCommand('copy');
+      this.showToast('✅ Token API berhasil disalin!', 'success');
+    }
+  },
+
+  fillSimulationPreset(type) {
+    const textarea = document.getElementById('sim-notif-text');
+    if (!textarea) return;
+
+    const presets = {
+      bca_qris: 'Transaksi QRIS Rp 25.000,00 di KOPI KENANGAN berhasil. Saldo berkurang.',
+      mandiri_indomaret: 'Berhasil melakukan transaksi Mandiri Debit di INDOMARET sebesar Rp 45.000. Sisa saldo rekening Anda Rp 4.955.000.',
+      bca_income: 'Dana masuk sebesar Rp 1.000.000,00 dari PT TEKNOLOGI KARYA INDONESIA berita: Gaji Bulanan'
+    };
+
+    textarea.value = presets[type] || '';
+    textarea.focus();
+  },
+
+  showToast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    const isError = type === 'error';
+    const borderBg = isSuccess 
+      ? 'bg-emerald-950/95 text-white border-emerald-500 shadow-emerald-950/40' 
+      : isError 
+        ? 'bg-rose-950/95 text-white border-rose-500 shadow-rose-950/40' 
+        : 'bg-slate-900/95 text-white border-sky-500 shadow-slate-900/40';
+
+    toast.className = `pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl border shadow-xl backdrop-blur-md text-xs transition-all duration-300 transform translate-y-2 opacity-0 ${borderBg}`;
+    
+    const iconSvg = isSuccess 
+      ? `<svg class="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+      : isError 
+        ? `<svg class="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+        : `<svg class="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+
+    toast.innerHTML = `
+      ${iconSvg}
+      <div class="flex-1 leading-snug">${msg}</div>
+      <button type="button" class="text-white/60 hover:text-white transition cursor-pointer p-0.5" onclick="this.parentElement.remove()">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    `;
+
+    container.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.classList.remove('translate-y-2', 'opacity-0');
+    });
+
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'translate-y-2');
+      setTimeout(() => toast.remove(), 350);
+    }, 4500);
   },
 
   resetBankForm() {

@@ -1,0 +1,12 @@
+# Keamanan data pribadi & token API
+data/*.txt
+data/*.json
+!data/.gitkeep
+!data/.htaccess
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

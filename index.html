@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.json">
   <title>DompetKu – Sistem Manajemen Finansial & Keuangan</title>
   <meta name="description" content="Aplikasi pengelolaan keuangan profesional, arus kas transaksi, pemantauan limit anggaran, dan visualisasi kinerja finansial.">
 
@@ -321,7 +322,12 @@
               </div>
               <p class="text-xs text-slate-500 ml-4">Saldo riil rekening bank kas nyata. Sumber dana utama untuk pos alokasi dompet.</p>
             </div>
-            <div class="flex items-center gap-2 self-start sm:self-auto">
+            <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+              <button type="button" onclick="ui.toggleModalWebhook(true)" class="text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300/80 px-3 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Otomasi Webhook</span>
+              </button>
               <button type="button" onclick="ui.toggleModalBankTransfer(true)" class="text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
                 <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                 <span>Transfer Antar Bank</span>
@@ -874,6 +880,144 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL OTOMASI WEBHOOK NOTIFIKASI BANK -->
+  <div id="modal-webhook" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-4 z-50">
+    <div class="bg-white rounded-2xl p-4 sm:p-7 w-full max-w-xl shadow-2xl max-h-[92vh] overflow-y-auto space-y-5 animate-modal border border-slate-200 custom-scrollbar">
+
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold shadow-xs">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-slate-900 text-base">Otomasi Notifikasi Bank (Webhook)</h3>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">Privat & Aman</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Hubungkan notifikasi m-Banking HP Anda untuk pencatatan transaksi otomatis.</p>
+          </div>
+        </div>
+        <button onclick="ui.toggleModalWebhook(false)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Keamanan & Status Privasi -->
+      <div class="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs space-y-1">
+        <div class="flex items-center gap-2 font-bold text-emerald-800">
+          <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span>100% Terlindungi Token Pribadi (Anti-Bocor)</span>
+        </div>
+        <p class="text-[11px] text-emerald-700 leading-relaxed">
+          Hanya HP yang menyertakan <strong>Token Rahasia</strong> di bawah ini yang dapat mencatat ke akun Anda. Jika ada orang lain yang menggunakan web ini di HP mereka, data Anda <strong>tidak akan pernah bocor atau tercampur</strong>.
+        </p>
+      </div>
+
+      <!-- Kredensial Webhook -->
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">URL Webhook Anda</label>
+          <div class="flex gap-2">
+            <input type="text" id="webhook-url-display" readonly
+              class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-800 select-all focus:outline-none">
+            <button type="button" onclick="ui.copyWebhookUrl()"
+              class="px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 flex-shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+              <span>Salin URL</span>
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">Gunakan URL ini di aplikasi MacroDroid pada HP Anda.</p>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kunci Token Rahasia (API Token)</label>
+          <div class="flex gap-2">
+            <input type="text" id="webhook-token-display" readonly
+              class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-700 select-all focus:outline-none">
+            <button type="button" onclick="app.regenerateWebhookToken()"
+              class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition border border-slate-200/80 cursor-pointer active:scale-95 flex-shrink-0" title="Buat Token Baru">
+              <span>Acak Ulang</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulator Notifikasi Langsung -->
+      <div class="pt-3 border-t border-slate-100 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Uji Coba Simulator Notifikasi</span>
+          </div>
+          <span class="text-[10px] text-slate-400">Tes pencatatan instan</span>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5">
+          <span class="text-[11px] text-slate-400 self-center mr-1">Contoh Cepat:</span>
+          <button type="button" onclick="ui.fillSimulationPreset('bca_qris')"
+            class="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-[10px] font-semibold text-sky-700 transition cursor-pointer">
+            BCA: QRIS Rp 25.000
+          </button>
+          <button type="button" onclick="ui.fillSimulationPreset('mandiri_indomaret')"
+            class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-[10px] font-semibold text-amber-800 transition cursor-pointer">
+            Mandiri: Indomaret Rp 45.000
+          </button>
+          <button type="button" onclick="ui.fillSimulationPreset('bca_income')"
+            class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-[10px] font-semibold text-emerald-800 transition cursor-pointer">
+            BCA: Dana Masuk Rp 1.000.000
+          </button>
+        </div>
+
+        <div>
+          <textarea id="sim-notif-text" rows="2" placeholder="Ketik atau paste teks notifikasi dari m-banking di sini..."
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition placeholder-slate-400"></textarea>
+        </div>
+
+        <button type="button" onclick="app.runSimulation()"
+          class="w-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-xs active:scale-[0.99] cursor-pointer flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+          <span>Kirim & Catat Transaksi Otomatis</span>
+        </button>
+
+        <div id="sim-result-box" class="hidden p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+        </div>
+      </div>
+
+      <!-- Panduan Setup MacroDroid HP -->
+      <div class="pt-3 border-t border-slate-100 space-y-2.5">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Panduan 2 Menit MacroDroid (HP Android)</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-slate-600">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1">
+            <span class="font-bold text-slate-900 block text-xs">1. Pasang MacroDroid</span>
+            <p class="text-[11px] text-slate-500">Download gratis di Play Store & aktifkan izin notifikasi.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1">
+            <span class="font-bold text-slate-900 block text-xs">2. Tambah Pemicu</span>
+            <p class="text-[11px] text-slate-500">Pilih <em>Notifikasi Diterima</em> -> Centang aplikasi BCA / Livin.</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1">
+            <span class="font-bold text-slate-900 block text-xs">3. Tambah Tindakan</span>
+            <p class="text-[11px] text-slate-500">Pilih <em>HTTP POST</em> -> Tempel URL Webhook di atas. Selesai!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex justify-end">
+        <button type="button" onclick="ui.toggleModalWebhook(false)" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition cursor-pointer active:scale-95">
+          Tutup Panduan
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER UNTUK NOTIFIKASI OTOMATIS -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
   <script src="js/utils.js"></script>
   <script src="js/state.js"></script>

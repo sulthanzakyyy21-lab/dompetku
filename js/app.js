@@ -1,4 +1,9 @@
 const app = {
+  webhookToken: '',
+  webhookUrl: '',
+  isCheckingQueue: false,
+  webhookPollTimer: null,
+
   init() {
     ui.init();
     ui.initFilters();
@@ -6,6 +11,7 @@ const app = {
       snow.init();
     }
     this.renderAll();
+    this.initWebhook();
   },
 
   renderAll() {
@@ -408,6 +414,228 @@ const app = {
     };
     reader.readAsText(file);
     event.target.value = '';
+  },
+
+  // --- Otomasi Webhook & Sinkronisasi Notifikasi Bank ---
+  initWebhook() {
+    this.loadWebhookInfo();
+    this.checkWebhookQueue();
+
+    // Polling antrean setiap 5 detik
+    if (this.webhookPollTimer) clearInterval(this.webhookPollTimer);
+    this.webhookPollTimer = setInterval(() => {
+      this.checkWebhookQueue();
+    }, 5000);
+
+    // Cek antrean saat window kembali fokus/aktif
+    window.addEventListener('focus', () => {
+      this.checkWebhookQueue();
+    });
+  },
+
+  loadWebhookInfo() {
+    fetch('api/sync.php?action=get_info')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.status === 'success') {
+          this.webhookToken = data.token;
+
+          // Buat URL yang dapat diakses oleh HP (jika dibuka via IP atau localhost)
+          let targetHost = window.location.host;
+          let protocol = window.location.protocol;
+          let pathname = window.location.pathname.replace(/\/index\.html.*$/, '').replace(/\/+$/, '');
+          let directUrl = `${protocol}//${targetHost}${pathname}/api/webhook.php?token=${data.token}`;
+
+          this.webhookUrl = directUrl;
+
+          const urlInput = document.getElementById('webhook-url-display');
+          if (urlInput) urlInput.value = directUrl;
+
+          const tokenInput = document.getElementById('webhook-token-display');
+          if (tokenInput) tokenInput.value = data.token;
+        }
+      })
+      .catch(err => {
+        console.warn('Gagal memuat info webhook:', err);
+      });
+  },
+
+  regenerateWebhookToken() {
+    if (!confirm('Peringatan: Membuat token baru akan menonaktifkan URL webhook lama di HP Anda.\n\nAnda harus memperbarui URL webhook di MacroDroid pada HP Anda. Lanjutkan?')) {
+      return;
+    }
+
+    fetch('api/sync.php?action=update_token', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.status === 'success') {
+          if (typeof ui !== 'undefined' && ui.showToast) {
+            ui.showToast('✅ Token API berhasil diacak ulang!', 'success');
+          }
+          this.loadWebhookInfo();
+        }
+      })
+      .catch(err => alert('Gagal memperbarui token: ' + err.message));
+  },
+
+  checkWebhookQueue() {
+    if (this.isCheckingQueue) return;
+    this.isCheckingQueue = true;
+
+    fetch('api/sync.php?action=get_queue')
+      .then(res => res.json())
+      .then(res => {
+        if (res && res.status === 'success' && Array.isArray(res.items) && res.items.length > 0) {
+          let hasChanges = false;
+
+          res.items.forEach(item => {
+            if (!item.amount || item.amount <= 0) return;
+
+            // 1. Cocokkan rekening Bank
+            let matchedBank = null;
+            if (item.bankId) {
+              matchedBank = state.banks.find(b => b.id.toLowerCase() === item.bankId.toLowerCase());
+            }
+            if (!matchedBank && item.bankName) {
+              matchedBank = state.banks.find(b => 
+                b.name.toLowerCase().includes(item.bankId?.toLowerCase() || '') || 
+                item.bankName.toLowerCase().includes(b.name.toLowerCase())
+              );
+            }
+            if (!matchedBank && state.banks.length > 0) {
+              matchedBank = state.banks[0];
+            }
+
+            // 2. Cocokkan dompet / pos anggaran
+            let matchedWallet = null;
+            if (item.category) {
+              matchedWallet = state.wallets.find(w => {
+                const wName = w.name.toLowerCase();
+                const cat = item.category.toLowerCase();
+                return wName.includes(cat) || cat.includes(wName);
+              });
+            }
+            if (!matchedWallet && item.desc) {
+              matchedWallet = state.wallets.find(w => {
+                const wName = w.name.toLowerCase();
+                const d = item.desc.toLowerCase();
+                return d.includes(wName);
+              });
+            }
+            if (!matchedWallet && state.wallets.length > 0) {
+              if (item.type === 'in') {
+                // Untuk pemasukan, utamakan pos tabungan/utama
+                matchedWallet = state.wallets.find(w => /tabung|utama|kas/i.test(w.name)) || state.wallets[0];
+              } else {
+                matchedWallet = state.wallets[0];
+              }
+            }
+
+            const now = new Date();
+            const dateFormatted = item.date || now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+            const fullDate = item.fullDate || now.toISOString();
+
+            const newTx = {
+              walletId: matchedWallet ? matchedWallet.id : '',
+              bankId: matchedBank ? matchedBank.id : (state.banks[0]?.id || ''),
+              amount: Number(item.amount),
+              category: item.category || (matchedWallet ? matchedWallet.name : 'Lainnya'),
+              desc: item.desc || (item.type === 'in' ? 'Pemasukan Otomatis' : 'Pengeluaran Otomatis'),
+              type: item.type === 'in' ? 'in' : 'out',
+              date: dateFormatted,
+              fullDate: fullDate,
+              source: 'webhook_auto'
+            };
+
+            state.transactions.push(newTx);
+            hasChanges = true;
+
+            const symbol = item.type === 'in' ? '+' : '-';
+            const toastMsg = `
+              <div>
+                <div class="font-bold text-white flex items-center gap-1.5">
+                  <span>⚡ Transaksi Otomatis (${matchedBank?.name || item.bankName || 'Bank'})</span>
+                </div>
+                <div class="mt-0.5 text-slate-200">
+                  ${newTx.desc} &bull; <strong class="${item.type === 'in' ? 'text-emerald-300' : 'text-rose-300'} font-mono">${symbol}${utils.formatRupiah(newTx.amount)}</strong>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Dialokasikan ke dompet: <em>${matchedWallet?.name || 'Utama'}</em></div>
+              </div>
+            `;
+            if (typeof ui !== 'undefined' && ui.showToast) {
+              ui.showToast(toastMsg, item.type === 'in' ? 'success' : 'info');
+            }
+          });
+
+          if (hasChanges) {
+            state.saveData();
+            this.renderAll();
+
+            // Acknowledge untuk membersihkan queue di server
+            fetch('api/sync.php?action=ack', { method: 'POST' }).catch(() => {});
+          }
+        }
+      })
+      .catch(err => {
+        // Polling background silent catch
+      })
+      .finally(() => {
+        this.isCheckingQueue = false;
+      });
+  },
+
+  runSimulation() {
+    const textarea = document.getElementById('sim-notif-text');
+    const resultBox = document.getElementById('sim-result-box');
+    if (!textarea || !textarea.value.trim()) {
+      alert('Masukkan teks notifikasi yang ingin disimulasikan terlebih dahulu.');
+      return;
+    }
+
+    const text = textarea.value.trim();
+    if (resultBox) {
+      resultBox.classList.remove('hidden');
+      resultBox.innerHTML = '<span class="text-slate-500 animate-pulse">Memproses parsing notifikasi m-banking...</span>';
+    }
+
+    fetch('api/sync.php?action=test_simulation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, save: 1 })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.status === 'success' && res.data) {
+        const d = res.data;
+        if (resultBox) {
+          resultBox.innerHTML = `
+            <div class="text-emerald-700 font-bold flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Berhasil Diparse & Dimasukkan Antrean!</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2 font-mono text-[11px] text-slate-700">
+              <div>Bank: <strong class="text-slate-900">${d.bankName}</strong></div>
+              <div>Tipe: <strong class="${d.type === 'in' ? 'text-emerald-600' : 'text-rose-600'}">${d.type === 'in' ? 'Pemasukan' : 'Pengeluaran'}</strong></div>
+              <div>Nominal: <strong class="text-slate-900">${utils.formatRupiah(d.amount)}</strong></div>
+              <div>Kategori: <strong class="text-slate-900">${d.category}</strong></div>
+              <div class="col-span-2">Keterangan: <strong class="text-slate-900">${d.desc}</strong></div>
+            </div>
+          `;
+        }
+        // Langsung sinkronkan antrean ke state dan tampilan
+        this.checkWebhookQueue();
+      } else {
+        if (resultBox) {
+          resultBox.innerHTML = `<span class="text-rose-600 font-bold">Gagal memproses simulasi: ${res.message || 'Terjadi kesalahan'}</span>`;
+        }
+      }
+    })
+    .catch(err => {
+      console.error('Simulation error:', err);
+      if (resultBox) {
+        resultBox.innerHTML = `<span class="text-rose-600 font-bold">Gagal menghubungi server API. Pastikan Apache/PHP berjalan.</span>`;
+      }
+    });
   }
 };
 
